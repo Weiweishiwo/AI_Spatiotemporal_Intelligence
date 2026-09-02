@@ -4,6 +4,43 @@
 
 ---
 
+## 快速开始（新成员先看这里）
+
+> 目标：**装一次 Python，之后双击就能跑**，其余全自动，不需要手动配环境。
+
+### 第一步：装 Python（只做一次）
+
+1. 打开 <https://www.python.org/downloads/> 下载 Python 3.12。
+2. 运行安装包，**务必勾选 `Add Python to PATH`**（关键一步），然后一路「下一步」。
+
+### 第二步：下载项目
+
+两种方式任选：
+
+- **最简单**：GitHub 仓库页面点 `Code → Download ZIP`，下载后解压。
+- 或用 HTTPS 克隆（需先装 Git）：
+
+```bash
+git clone https://github.com/Weiweishiwo/AI_Spatiotemporal_Intelligence.git
+```
+
+### 第三步：双击运行
+
+双击项目根目录下的 **`run.bat`**：
+
+- 首次会**自动**创建虚拟环境 `.venv` 并安装依赖（走清华镜像，国内快，可能要几分钟）。
+- 之后每次双击都会秒开，不用再配置。
+
+### 常见问题
+
+- **提示 `Python not found`**：装 Python 时没勾 `Add Python to PATH`，重新安装并勾选即可。
+- **依赖装到一半报错**：删掉项目里的 `.venv` 文件夹，重新双击 `run.bat`。
+- **想更新依赖**：同上，删 `.venv` 后重跑。
+
+> 当前 `run.bat` 启动的是 `HelloWorld.py`（占位验证环境）。等后端就绪后，会改成启动 uvicorn 服务。
+
+---
+
 ## 一、项目定位
 
 - **主题**：地面巡检面向厂区/园区的 AI 智能体时空智能

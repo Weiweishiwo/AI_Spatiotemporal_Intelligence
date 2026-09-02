@@ -1,0 +1,24 @@
+# ---- 后端 ----
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+sqlmodel==0.0.42
+pymysql==1.2.0
+cryptography==50.0.1
+pydantic-settings==2.15.0
+
+# ---- 数据 / 仿真 ----
+pandas==3.0.5
+numpy==2.5.2
+pyproj==3.7.2
+networkx==3.6.1
+
+# ---- 感知 ----
+ultralytics==8.4.138
+opencv-python==5.0.0.93
+
+# ---- 智能体 ----
+openai==3.7.0
+
+# ---- 测试 ----
+pytest==9.1.1
+httpx==0.28.1
