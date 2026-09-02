@@ -1,0 +1,24 @@
+# ---- 后端 ----
+fastapi
+uvicorn[standard]
+sqlmodel
+pymysql
+cryptography
+pydantic-settings
+
+# ---- 数据 / 仿真 ----
+pandas
+numpy
+pyproj
+networkx
+
+# ---- 感知 ----
+ultralytics
+opencv-python
+
+# ---- 智能体 ----
+openai
+
+# ---- 测试 ----
+pytest
+httpx
