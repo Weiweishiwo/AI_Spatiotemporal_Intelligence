@@ -39,12 +39,16 @@
 
 | 模块 | 技术选型 |
 |---|---|
-| 数据/仿真 | Python 3.10+、GeoJSON、pandas、numpy |
-| 感知 | ultralytics (YOLOv8 预训练权重)、OpenCV |
-| 时空智能 | networkx 或自实现（TSP 贪心 / 最短路径） |
-| 后端 | FastAPI、SQLModel/SQLite、uvicorn |
-| 前端 | **纯 HTML + JS + Leaflet**（弱基础不上框架）+ 天地图/OSM 底图 |
-| 智能体 | DeepSeek/OpenAI API（可选，先用规则状态机兜底） |
+| 通用/环境 | Python 3.10+、`requirements.txt`、`.env`（pydantic-settings） |
+| 数据/仿真 | GeoJSON、pandas、numpy、pyproj（经纬度 ↔ 投影坐标） |
+| 感知 | ultralytics (YOLOv8)、OpenCV、LabelImg（数据标注） |
+| 时空智能 | networkx（TSP 贪心 / 最短路径） |
+| 后端 | FastAPI、MySQL 8（POINT 空间类型 + 空间索引）、SQLModel + pymysql、uvicorn |
+| 前端 | 纯 HTML + JS + Leaflet + 天地图/OSM 底图、WebSocket（轨迹实时回放） |
+| 智能体 | DeepSeek API（openai 兼容 SDK）、function calling 工具调用、SSE 流式输出 |
+| 部署/测试 | Docker + docker-compose（起 MySQL）、pytest |
+
+> 两个扣主题的关键点：**MySQL 空间类型**用来做「附近巡检点 / 轨迹相交」这类时空查询；**function calling** 让 DeepSeek 能直接调用后端的巡检、规划接口，而不只是回文字。
 
 ---
 
@@ -54,10 +58,10 @@
 
 | 角色 | 模块 | 职责 | 交付物 | 难度 |
 |---|---|---|---|---|
-| **组长** | **技术负责人**（接口契约 + A 数据/仿真 + F 智能体/集成） | ① 牵头定数据格式和 API 契约，写成 `docs/data-schema.md`、`docs/api.md` 并冻结；② 生成园区 GeoJSON、仿真轨迹、异常事件（正好作为契约的落地样例）；③ 写巡检决策 + 报告生成（规则状态机，进阶接 LLM）；④ 最终全链路集成 + demo 串讲 | 契约文档 + 样例数据 + 决策/报告模块 | ⭐⭐ |
+| **组长** | **技术负责人**（接口契约 + A 数据/仿真 + F 智能体/集成） | ① 牵头定数据格式和 API 契约，写成 `docs/data-schema.md`、`docs/api.md` 并冻结；② 生成园区 GeoJSON、仿真轨迹、异常事件（正好作为契约的落地样例）；③ 写巡检决策 + 报告生成（DeepSeek API + function calling 调用后端接口）；④ 最终全链路集成 + demo 串讲 | 契约文档 + 样例数据 + 决策/报告模块 | ⭐⭐ |
 | **成员 1** | **B 感知（视觉）** | 异常检测：安全帽 / 烟火 / 设备状态等，用 YOLOv8 预训练权重 + 合成图/公开数据集跑通，输出检测 API | 推理脚本 + 一个可调用的检测接口 | ⭐⭐⭐ |
 | **成员 2** | **C 时空智能** | 巡检路径规划（覆盖所有巡检点的可行/最优路径）+ 简单任务调度 | 路径规划模块 + 单元测试 | ⭐⭐⭐ |
-| **成员 3** | **D 后端** | FastAPI 统一 REST 接口，整合 A/C/B 数据，落库 SQLite | REST API + 数据模型 | ⭐⭐ |
+| **成员 3** | **D 后端** | FastAPI 统一 REST 接口，整合 A/C/B 数据，落库 MySQL | REST API + 数据模型 | ⭐⭐ |
 | **成员 4** | **E 前端** | 地图可视化：园区地图 + 轨迹回放 + 异常点标注 + 巡检报告页 | Web 前端 demo | ⭐⭐ |
 
 **分工逻辑**：组长兼数据/仿真，因为「冻结数据格式」是组长的职责，最自然的做法就是自己先把样例数据生成出来，避免成为所有人的上游阻塞。感知（成员 1）、时空（成员 2）是项目两大技术亮点，分别给偏算法方向的组员。
@@ -159,6 +163,9 @@
 ```
 .
 ├── README.md
+├── requirements.txt        # Python 依赖
+├── .env.example            # 配置模板（DeepSeek key、MySQL 连接）
+├── docker-compose.yml      # 起 MySQL 容器
 ├── docs/
 │   ├── data-schema.md      # 数据格式（组长冻结）
 │   └── api.md              # API 契约（组长冻结）
