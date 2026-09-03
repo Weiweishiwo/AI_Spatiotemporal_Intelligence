@@ -37,7 +37,7 @@ git clone https://github.com/Weiweishiwo/AI_Spatiotemporal_Intelligence.git
 - **依赖装到一半报错**：删掉项目里的 `.venv` 文件夹，重新双击 `run.bat`。
 - **想更新依赖**：同上，删 `.venv` 后重跑。
 
-> 当前 `run.bat` 启动的是 `HelloWorld.py`（占位验证环境）。等后端就绪后，会改成启动 uvicorn 服务。
+> 当前 `run.bat` 启动后端 uvicorn 服务（`backend.main:app`），浏览器打开 http://127.0.0.1:8000/docs 查看 API 契约。
 
 ---
 

@@ -47,8 +47,9 @@ if not exist ".venv\.deps_installed" (
 )
 
 REM --- 4. Run the app ---
-echo [3/3] Starting app ...
+echo [3/3] Starting backend API ...
+echo     API contract: http://127.0.0.1:8000/docs
 echo.
-".venv\Scripts\python.exe" HelloWorld.py
+".venv\Scripts\python.exe" -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
 pause
