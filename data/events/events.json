@@ -1,0 +1,35 @@
+[
+  {
+    "event_id": "EVT-001",
+    "task_id": "task-001",
+    "timestamp": "2026-09-01T08:02:30Z",
+    "lng": 116.160,
+    "lat": 39.180,
+    "type": "smoke",
+    "confidence": 0.92,
+    "image_path": "data/images/evt001.jpg",
+    "status": "pending"
+  },
+  {
+    "event_id": "EVT-002",
+    "task_id": "task-001",
+    "timestamp": "2026-09-01T08:03:10Z",
+    "lng": 116.170,
+    "lat": 39.160,
+    "type": "no_helmet",
+    "confidence": 0.88,
+    "image_path": "data/images/evt002.jpg",
+    "status": "pending"
+  },
+  {
+    "event_id": "EVT-003",
+    "task_id": "task-001",
+    "timestamp": "2026-09-01T08:04:40Z",
+    "lng": 116.180,
+    "lat": 39.190,
+    "type": "equipment_abnormal",
+    "confidence": 0.75,
+    "image_path": "data/images/evt003.jpg",
+    "status": "confirmed"
+  }
+]
