@@ -71,7 +71,7 @@ Feature 分三类，靠 `properties.kind` 区分：
 
 ## 3. 异常事件
 
-文件：`data/events/events.json`（数组）
+文件：`data//events.json`（数组）
 
 | 字段 | 类型 | 说明 |
 |---|---|---|

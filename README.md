@@ -209,7 +209,7 @@ git clone https://github.com/Weiweishiwo/AI_Spatiotemporal_Intelligence.git
 ├── data/
 │   ├── map/                # 园区 GeoJSON
 │   ├── tracks/             # 仿真轨迹
-│   └── images/             # 仿真/合成图片
+│   └── events/             # 仿真/合成图片
 ├── simulation/             # A 数据/仿真生成脚本
 ├── perception/             # B 感知
 ├── spatiotemporal/         # C 路径规划/调度
