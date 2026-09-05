@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>前端模块（E）hello-world：园区地图</title>
+
+  <!--
+    前端模块（E）hello-world 演示 —— 成员 4
+
+    职责：地图可视化（园区地图 + 轨迹回放 + 异常点标注 + 巡检报告页）。
+    技术栈：纯 HTML + JS + Leaflet + 天地图/OSM 底图。
+
+    这份 hello-world 只证明两件事：
+    1. Leaflet 地图能打开、能加载底图。
+    2. 能把巡检点画到地图上——这是后面所有可视化（轨迹回放、异常标注）的基础。
+
+    运行方式：直接用浏览器双击打开本文件（需联网加载 Leaflet 和底图）。
+    -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body { height: 100%; margin: 0; }
+    #map { height: 100%; }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // 园区中心点（和 data/map/campus.geojson 的坐标范围一致）
+    var center = [39.17, 116.15];
+
+    // 初始化地图：center 是 [纬度, 经度]，16 是缩放级别
+    var map = L.map('map').setView(center, 16);
+
+    // 加载底图（OpenStreetMap；国内如加载慢，可换天地图，见 README 技术栈）
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // 写死几个巡检点（等价于 data/map/campus.geojson 里 kind=inspection_point 的数据）
+    var points = [
+      { id: 'IP-001', name: '配电房', lng: 116.15, lat: 39.18 },
+      { id: 'IP-002', name: '水泵房', lng: 116.17, lat: 39.16 },
+      { id: 'IP-003', name: '仓库',   lng: 116.13, lat: 39.15 }
+    ];
+
+    // 把每个巡检点画成标记；注意 Leaflet 的坐标顺序是 [lat, lng]
+    points.forEach(function (p) {
+      L.marker([p.lat, p.lng])
+        .addTo(map)
+        .bindPopup(p.id + ' ' + p.name);
+    });
+
+    // 第二周任务：把上面写死的数据换成真实数据，例如：
+    //   fetch('http://127.0.0.1:8000/api/map')
+    //     .then(r => r.json())
+    //     .then(res => { /* 遍历 res.data.features 里 kind=inspection_point 的项 */ });
+    // 轨迹回放和异常点标注也在这一层接着做。
+  </script>
+</body>
+</html>
