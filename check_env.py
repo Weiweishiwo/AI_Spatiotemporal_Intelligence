@@ -39,8 +39,8 @@ def main():
 
     # 1. Python 版本
     def _python():
-        assert sys.version_info >= (3, 10), f"需要 Python 3.10+，当前 {sys.version.split()[0]}"
-    check("Python 版本 >= 3.10", _python)
+        assert sys.version_info >= (3, 14), f"需要 Python 3.14，当前 {sys.version.split()[0]}"
+    check("Python 版本 >= 3.14", _python)
 
     # 2. 核心依赖（全员都需要）
     for name in ["fastapi", "uvicorn", "pydantic", "pydantic_settings", "sqlmodel",

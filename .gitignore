@@ -22,6 +22,7 @@ ENV/
 # 环境变量 / 密钥
 .env
 .env.*
+!.env.example
 
 # 数据 / 缓存
 *.log

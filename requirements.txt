@@ -24,4 +24,4 @@ openai
 # ===== 测试 =====
 pytest
 
-# 注：LabelImg（数据标注）是 GUI 工具，需单独安装；MySQL 用 docker-compose 起，不走 pip。
+# 注：LabelImg（数据标注）是 GUI 工具，需单独安装；MySQL 8 本机安装，不走 pip。
