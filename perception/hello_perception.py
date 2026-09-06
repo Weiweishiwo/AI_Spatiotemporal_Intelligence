@@ -11,7 +11,7 @@
     python perception/hello_perception.py
 
 它会：用 OpenCV 画一张合成图模拟「拍到异常」，再对它做一次占位检测，
-打印出符合契约格式的检测结果 JSON。
+打印出符合契约格式的检测结果 JSON
 """
 
 import json

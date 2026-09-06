@@ -92,7 +92,7 @@ def load_inspection_points(geojson_path) -> list[dict]:
 
 
 if __name__ == "__main__":
-    # 从真实园区地图里读出所有巡检点（不用再手写样例数据）
+    # 从真实园区地图里读出所有巡检点（不用再手写样例数据
     map_path = Path(__file__).resolve().parent.parent / "data" / "map" / "campus.geojson"
     points = load_inspection_points(map_path)
     # 起点：假设是园区门口的机库（地图里没有这个点，先临时指定一个）
