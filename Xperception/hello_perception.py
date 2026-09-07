@@ -3,7 +3,7 @@
 职责：异常检测（安全帽 / 烟火 / 设备状态等）。
 技术栈：ultralytics (YOLOv8) + OpenCV。
 
-「执行YOLO感知data文件下的imags」——拼写错了(imags→images)「无参 = 检测data/images 全部图片;传参 = 单张图或目录」
+「执行YOLO感知data文件下的images「无参 = 检测data/images 全部图片;传参 = 单张图或目录」
 """
 import json
 from ultralytics import  YOLO
