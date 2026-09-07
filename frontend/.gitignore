@@ -12,7 +12,6 @@ dist
 dist-ssr
 output
 *.local
-package-lock.json
 playwright-report
 test-results
 
