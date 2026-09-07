@@ -52,7 +52,7 @@ def schedule(points: list[dict], start: dict | None = None) -> dict:
         pos = {p["id"]: (p["lng"], p["lat"]) for p in group}
         unvisited = set(pos)
 
-        # 组内第一个点：如果整条路线还没有起点，就取本组第一个点，不产生里程
+        # 组内第一个点：如果整条路线还没有起点，就取本组第一个点不产生里程
         if cur is None:
             first_id = group[0]["id"]
             route.append(first_id)
