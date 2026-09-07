@@ -1,0 +1,123 @@
+/* ===== 设计令牌 ===== */
+:root {
+  --primary: 206 65% 34%;
+  --primary-foreground: 0 0% 100%;
+  --accent: 180 80% 30%;
+  --accent-foreground: 0 0% 100%;
+  --background: 214 33% 97%;
+  --foreground: 210 30% 16%;
+  --muted: 214 24% 93%;
+  --muted-foreground: 210 14% 45%;
+  --card: 0 0% 100%;
+  --border: 214 20% 88%;
+  --secondary: 206 60% 96%;
+  --secondary-foreground: 206 65% 34%;
+  --chart-3: 200 70% 45%;
+
+  --gradient-primary: linear-gradient(120deg, hsl(206 65% 34%), hsl(180 80% 30%));
+  --gradient-background: linear-gradient(180deg, hsl(214 33% 97%), hsl(210 30% 94%));
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border)) transparent;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'AlibabaPuHuiTi', system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  background-image: var(--gradient-background);
+  background-attachment: fixed;
+}
+
+/* 锚点偏移：补偿固定导航栏高度 */
+section[id] {
+  scroll-margin-top: 5rem;
+}
+
+/* ===== 蓝图网格 ===== */
+.blueprint-grid {
+  background-image:
+    linear-gradient(hsl(var(--primary) / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--primary) / 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+/* ===== 渐变文字 ===== */
+.gradient-text {
+  background-image: var(--gradient-primary);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ===== 玻璃科技卡片 ===== */
+.tech-card {
+  background: hsl(var(--card) / 0.85);
+  backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 1px 2px hsl(210 30% 16% / 0.04), 0 12px 32px hsl(206 65% 34% / 0.06);
+}
+
+/* ===== 流动轨迹动画 ===== */
+.animate-flow {
+  stroke-dasharray: 8 12;
+  animation: flow 2.4s linear infinite;
+}
+@keyframes flow {
+  to { stroke-dashoffset: -40; }
+}
+
+/* ===== 扫描波纹 ===== */
+.animate-ripple {
+  transform-origin: center;
+  animation: ripple 2.6s ease-out infinite;
+}
+@keyframes ripple {
+  0% { transform: scale(0.6); opacity: 0.6; }
+  100% { transform: scale(2.4); opacity: 0; }
+}
+
+/* ===== 入场动画 ===== */
+.fade-in-up {
+  opacity: 0;
+  transform: translateY(24px);
+  animation: fadeInUp 0.7s ease-out forwards;
+}
+@keyframes fadeInUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== 漂浮光晕 ===== */
+.drift-1 { animation: drift1 18s ease-in-out infinite; }
+.drift-2 { animation: drift2 22s ease-in-out infinite; }
+.drift-3 { animation: drift3 16s ease-in-out infinite; }
+@keyframes drift1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(40px,30px)} }
+@keyframes drift2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-30px,40px)} }
+@keyframes drift3 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(30px,-20px)} }
+
+/* ===== 缓慢旋转 ===== */
+.spin-slow { animation: spinSlow 60s linear infinite; }
+.spin-slow-rev { animation: spinSlow 50s linear infinite reverse; }
+@keyframes spinSlow { to { transform: rotate(360deg); } }
+
+/* ===== 浮动光点 ===== */
+.float-dot { animation: floatDot 16s ease-in-out infinite; }
+@keyframes floatDot {
+  0%,100% { transform: translateY(0); opacity: 0.2; }
+  50% { transform: translateY(-28px); opacity: 0.6; }
+}
+
+/* ===== 滚动入场观察 ===== */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease-out, transform 0.7s ease-out;
+}
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

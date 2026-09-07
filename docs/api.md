@@ -149,8 +149,35 @@ Body（`application/json`）：
 
 ---
 
-## 第二阶段（未冻结，先占位）
+## 第二阶段（部分已落地，未冻结；改动仍需全组同步）
 
-- **WebSocket** `/ws/track?task_id=`：轨迹实时回放，前端（E）第 3 周接入。
-- **落库 MySQL**：当前接口读 `data/` 下 JSON；接 MySQL（POINT 空间类型）后替换数据源，接口签名不变。
-- **SSE 流式输出**：智能体（F）生成报告时的流式输出通道。
+### WebSocket `/ws/track`（已实现，D 后端）
+
+轨迹实时回放，前端（E）第 3 周接入。
+
+| 参数 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `task_id` | string | 是 | 任务 ID |
+| `interval_ms` | int | 否 | 采样点推送间隔（默认 200），越小回放越快 |
+
+服务端帧格式（每帧一个 JSON）：
+
+1. `{ "type": "meta", "task_id", "agent_id", "total" }` — 总点数
+2. N 个 `{ "type": "point", "index": i, "point": { 采样点（§2 track[] 元素）} }`
+3. `{ "type": "finished", "total" }`
+
+任务不存在：先发 `{ "type": "error", "message" }` 再关闭连接。
+
+### SSE `GET /api/report/stream?task_id=`（已实现，D 后端）
+
+`Content-Type: text/event-stream`，事件序列：`progress`（`step`/`pct` 加载轨迹 30 → 收集事件 60 → 生成结论 80）→ `report`（data 为 data-schema §6 报告对象）→ `done`。任务不存在返回 HTTP 404 + 统一信封（`40401`）。
+
+> 智能体（F）接入后：conclusion 由 LLM 生成，同一事件通道不变。
+
+### 落库 MySQL（代码就绪、默认关闭；D 后端）
+
+实现见 `backend/storage.py`：`.env` 设 `MYSQL_ENABLED=true` 后启用 MySQL 8
+（巡检点 / 事件 / 轨迹点落库，事件与巡检点带 `POINT(4326)` 空间列 + 空间索引；
+首次启动自动从 `data/` 灌样例，接口返回结构与 JSON 数据源一致）。
+连不上库自动回退 JSON，接口签名不变。空间查询演示：`nearby_events(lng, lat, radius_m)`
+（`ST_DistanceSphere` 附近事件），供后续「附近巡检点 / 轨迹相交」类接口复用。
