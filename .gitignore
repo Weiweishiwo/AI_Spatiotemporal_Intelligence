@@ -24,8 +24,12 @@ ENV/
 .env.*
 !.env.example
 
+!.env.example
+
 # 数据 / 缓存
 *.log
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+# Claude Code 本地权限配置（个人、含机器相关信息）
+.claude/settings.local.json
