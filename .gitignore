@@ -23,6 +23,8 @@ ENV/
 .env
 .env.*
 
+!.env.example
+
 # 数据 / 缓存
 *.log
 .pytest_cache/
