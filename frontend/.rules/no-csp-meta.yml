@@ -1,0 +1,37 @@
+id: no-csp-meta
+language: html
+files:
+  - index.html
+rule:
+  all:
+    # 只检查真正的 <meta> 开始标签，避免误报自定义元素或普通元素。
+    - any:
+        - kind: start_tag
+        - kind: self_closing_tag
+    - has:
+        kind: tag_name
+        regex: '(?i)^meta$'
+    - has:
+        kind: attribute
+        all:
+          - has:
+              kind: attribute_name
+              regex: '(?i)^http-equiv$'
+          - any:
+              # 连字符既匹配原字符，也匹配 HTML 数字字符引用（如 &#45;、&#x2d;）。
+              - has:
+                  kind: quoted_attribute_value
+                  has:
+                    kind: attribute_value
+                    regex: '(?i)^\s*(?:content(?:-|&#0*45;?|&#x0*2d;?)security(?:-|&#0*45;?|&#x0*2d;?)policy(?:(?:-|&#0*45;?|&#x0*2d;?)report(?:-|&#0*45;?|&#x0*2d;?)only)?|x(?:-|&#0*45;?|&#x0*2d;?)frame(?:-|&#0*45;?|&#x0*2d;?)options)\s*$'
+              # 不带引号的值：attribute > attribute_value
+              - has:
+                  kind: attribute_value
+                  regex: '(?i)^\s*(?:content(?:-|&#0*45;?|&#x0*2d;?)security(?:-|&#0*45;?|&#x0*2d;?)policy(?:(?:-|&#0*45;?|&#x0*2d;?)report(?:-|&#0*45;?|&#x0*2d;?)only)?|x(?:-|&#0*45;?|&#x0*2d;?)frame(?:-|&#0*45;?|&#x0*2d;?)options)\s*$'
+message: |
+  禁止在 index.html 写安全响应头 meta。
+  发布态 CSP 由平台以 HTTP 响应头统一下发（已放行 op-sourcecode.cdn.bcebos.com 等平台域）。
+  多份 CSP 取最严交集，应用层再写一份 script-src 'self' 会把平台域全部抹掉，
+  导致发布态加载不到应用自己的 bundle → 整站白屏。预览态同源，复现不出来。
+  安全加固请在代码层做：RLS、输入校验、输出转义。
+severity: error

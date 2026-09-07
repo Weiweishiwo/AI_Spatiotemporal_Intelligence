@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  {% block meta %}
+  <title>AI 智能体时空智能平台 · 园区地面智能巡检</title>
+  <meta name="description" content="融合空间定位、机器视觉、多智能体协同，打造园区全流程智能巡检体系，让每一寸地面都处于实时智能管控之下。" />
+  {% endblock %}
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Tailwind 语义令牌映射（与 style.css 中的 CSS 变量保持一致）
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: 'hsl(206 65% 34%)',
+            'primary-foreground': 'hsl(0 0% 100%)',
+            accent: 'hsl(180 80% 30%)',
+            'accent-foreground': 'hsl(0 0% 100%)',
+            background: 'hsl(214 33% 97%)',
+            foreground: 'hsl(210 30% 16%)',
+            muted: 'hsl(214 24% 93%)',
+            'muted-foreground': 'hsl(210 14% 45%)',
+            card: 'hsl(0 0% 100%)',
+            border: 'hsl(214 20% 88%)',
+            secondary: 'hsl(206 60% 96%)',
+            'secondary-foreground': 'hsl(206 65% 34%)',
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body class="bg-background text-foreground min-h-screen antialiased">
+  {% block content %}{% endblock %}
+  <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

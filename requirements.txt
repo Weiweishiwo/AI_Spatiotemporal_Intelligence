@@ -1,27 +1,29 @@
-# ===== 后端 / 通用 =====
+# ===== backend / common =====
 fastapi
 uvicorn
+# uvicorn 的 WebSocket 支持（/ws/track 实时回放 + pytest 测试都需要）
+websockets
 pydantic-settings
 sqlmodel
 pymysql
 httpx
 
-# ===== 数据 / 仿真 =====
+# ===== data / simulation =====
 pandas
 numpy
 pyproj
 
-# ===== 时空智能 =====
+# ===== spatiotemporal intelligence =====
 networkx
 
-# ===== 感知（成员 1；Windows 默认装 CPU 版 torch，无需 NVIDIA）=====
+# ===== perception (member 1; CPU-only torch on Windows by default, no NVIDIA needed) =====
 ultralytics
 opencv-python
 
-# ===== 智能体 =====
+# ===== agents =====
 openai
 
-# ===== 测试 =====
+# ===== tests =====
 pytest
 
-# 注：LabelImg（数据标注）是 GUI 工具，需单独安装；MySQL 用 docker-compose 起，不走 pip。
+# Note: LabelImg (data annotation GUI) must be installed separately; MySQL 8 is installed locally, not via pip.
