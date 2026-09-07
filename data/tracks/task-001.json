@@ -1,0 +1,17 @@
+{
+  "task_id": "task-001",
+  "agent_id": "drone-01",
+  "status": "finished",
+  "track": [
+    { "timestamp": "2026-09-01T08:00:00Z", "lng": 116.120, "lat": 39.130, "alt": 15.0, "speed": 0.0, "heading": 45.0 },
+    { "timestamp": "2026-09-01T08:00:40Z", "lng": 116.130, "lat": 39.170, "alt": 15.0, "speed": 2.5, "heading": 70.0 },
+    { "timestamp": "2026-09-01T08:01:20Z", "lng": 116.150, "lat": 39.180, "alt": 15.0, "speed": 2.5, "heading": 30.0 },
+    { "timestamp": "2026-09-01T08:02:30Z", "lng": 116.160, "lat": 39.180, "alt": 15.0, "speed": 2.6, "heading": 90.0 },
+    { "timestamp": "2026-09-01T08:03:10Z", "lng": 116.170, "lat": 39.160, "alt": 15.0, "speed": 2.4, "heading": 120.0 },
+    { "timestamp": "2026-09-01T08:04:40Z", "lng": 116.180, "lat": 39.190, "alt": 15.0, "speed": 2.7, "heading": 70.0 },
+    { "timestamp": "2026-09-01T08:05:20Z", "lng": 116.160, "lat": 39.200, "alt": 15.0, "speed": 2.8, "heading": 150.0 },
+    { "timestamp": "2026-09-01T08:06:00Z", "lng": 116.140, "lat": 39.180, "alt": 15.0, "speed": 2.6, "heading": 200.0 },
+    { "timestamp": "2026-09-01T08:06:40Z", "lng": 116.130, "lat": 39.160, "alt": 15.0, "speed": 2.4, "heading": 220.0 },
+    { "timestamp": "2026-09-01T08:07:00Z", "lng": 116.120, "lat": 39.130, "alt": 15.0, "speed": 0.0, "heading": 250.0 }
+  ]
+}
