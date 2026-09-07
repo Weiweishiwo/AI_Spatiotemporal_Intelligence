@@ -10,7 +10,7 @@
 
 ### 第一步：装 Python（只做一次）
 
-1. 打开 <https://www.python.org/downloads/> 下载 Python 3.12。
+1. 打开 <https://www.python.org/downloads/> 下载 Python 3.14。
 2. 运行安装包，**务必勾选 `Add Python to PATH`**（关键一步），然后一路「下一步」。
 
 ### 第二步：下载项目
@@ -76,14 +76,14 @@ git clone https://github.com/Weiweishiwo/AI_Spatiotemporal_Intelligence.git
 
 | 模块 | 技术选型 |
 |---|---|
-| 通用/环境 | Python 3.10+、`requirements.txt`、`.env`（pydantic-settings） |
+| 通用/环境 | Python 3.14、`requirements.txt`、`.env`（pydantic-settings） |
 | 数据/仿真 | GeoJSON、pandas、numpy、pyproj（经纬度 ↔ 投影坐标） |
 | 感知 | ultralytics (YOLOv8)、OpenCV、LabelImg（数据标注） |
 | 时空智能 | networkx（TSP 贪心 / 最短路径） |
 | 后端 | FastAPI、MySQL 8（POINT 空间类型 + 空间索引）、SQLModel + pymysql、uvicorn |
 | 前端 | 纯 HTML + JS + Leaflet + 天地图/OSM 底图、WebSocket（轨迹实时回放） |
 | 智能体 | DeepSeek API（openai 兼容 SDK）、function calling 工具调用、SSE 流式输出 |
-| 部署/测试 | Docker + docker-compose（起 MySQL）、pytest |
+| 部署/测试 | 本机安装 MySQL 8、pytest |
 
 > 两个扣主题的关键点：**MySQL 空间类型**用来做「附近巡检点 / 轨迹相交」这类时空查询；**function calling** 让 DeepSeek 能直接调用后端的巡检、规划接口，而不只是回文字。
 
@@ -202,7 +202,6 @@ git clone https://github.com/Weiweishiwo/AI_Spatiotemporal_Intelligence.git
 ├── README.md
 ├── requirements.txt        # Python 依赖
 ├── .env.example            # 配置模板（DeepSeek key、MySQL 连接）
-├── docker-compose.yml      # 起 MySQL 容器
 ├── docs/
 │   ├── data-schema.md      # 数据格式（组长冻结）
 │   └── api.md              # API 契约（组长冻结）

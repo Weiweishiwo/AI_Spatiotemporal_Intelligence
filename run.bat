@@ -12,7 +12,7 @@ REM --- 1. Check Python ---
 where python >nul 2>nul
 if errorlevel 1 (
     echo [ERROR] Python not found.
-    echo Please install Python 3.10+ from https://www.python.org/downloads/
+    echo Please install Python 3.14 from https://www.python.org/downloads/
     echo IMPORTANT: check "Add Python to PATH" during installation.
     pause
     exit /b 1

@@ -26,4 +26,4 @@ openai
 # ===== tests =====
 pytest
 
-# Note: LabelImg (data annotation GUI) must be installed separately; MySQL runs via docker-compose, not pip.
+# Note: LabelImg (data annotation GUI) must be installed separately; MySQL 8 is installed locally, not via pip.

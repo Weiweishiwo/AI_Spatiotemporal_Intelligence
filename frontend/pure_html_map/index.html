@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>园区巡检 · 地图可视化（E 前端）</title>
+
+  <!--
+    前端模块（E）园区地图页 —— 成员 4
+
+    这块页面目前做四件事：
+      1. 园区底图：4 栋楼 + 2 条路 + 5 个巡检点，左侧清单可点击跳转；
+      2. 轨迹展示：右上角选任务，把无人机飞过的路线画成一条蓝线（绿=起点，红=终点）；
+      3. 回放动画：点「▶ 播放」，🚁 沿轨迹重放整个巡检过程（可暂停/重播/调速度/拖进度）；
+      4. 异常事件：右下角面板 + 地图图标圈标注，可按类型/状态筛选。
+
+    技术：纯 HTML + JS + Leaflet（不用任何框架），和 hello_frontend.html 同一套。
+
+    运行方式：直接用浏览器双击本文件（需联网加载 Leaflet 和底图）。
+
+    ★第二阶段★（下周再做）：
+      把下面 "写死的假数据" 换成问后端要真数据：
+        fetch('http://127.0.0.1:8000/api/map')
+          .then(r => r.json())
+          .then(res => { ... 用 res.data 代替 FAKE_RESPONSE.data ... });
+      因为代码本来就是按后端返回的格式写的，到时候只改一行取数的地方。
+  -->
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <style>
+    html, body { height: 100%; margin: 0; font-family: "Microsoft YaHei", sans-serif; }
+    body { display: flex; }
+
+    /* 左侧信息栏 */
+    #side {
+      width: 230px; height: 100%; box-sizing: border-box;
+      background: #1e293b; color: #e2e8f0;
+      padding: 14px; overflow-y: auto; flex-shrink: 0;
+    }
+    #side h2 { font-size: 15px; margin: 0 0 4px; }
+    #side .sub { font-size: 12px; color: #94a3b8; margin-bottom: 12px; }
+    #side ul { list-style: none; padding: 0; margin: 0; }
+    #side li {
+      padding: 8px 10px; margin-bottom: 6px; cursor: pointer;
+      background: #334155; border-radius: 6px; font-size: 13px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    #side li:hover { background: #475569; }
+    /* 颜色小圆点（和地图上的点同色） */
+    .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+    /* 地图占满剩下的全部空间 */
+    #map { flex: 1; height: 100%; }
+    /* 左下角数据来源说明 */
+    #status {
+      position: absolute; bottom: 24px; left: 240px; z-index: 500;
+      background: rgba(255,255,255,.9); padding: 4px 10px;
+      font-size: 12px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.3);
+    }
+    /* 右上角：任务选择（轨迹显示） */
+    #controls {
+      position: absolute; top: 12px; right: 12px; z-index: 500;
+      background: rgba(255,255,255,.95); border-radius: 8px;
+      padding: 8px 12px; font-size: 13px; box-shadow: 0 1px 4px rgba(0,0,0,.3);
+    }
+    #controls .row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+    #controls select { font-size: 13px; padding: 2px 6px; }
+    #controls button {
+      padding: 2px 10px; font-size: 13px; cursor: pointer;
+      border: 1px solid #cbd5e1; border-radius: 4px; background: #fff;
+    }
+    #controls button:hover { background: #f1f5f9; }
+    #controls hr { border: none; border-top: 1px solid #e2e8f0; margin: 8px 0; }
+    #seek { flex: 1; }
+    #trackInfo { color: #475569; font-size: 12px; margin-top: 4px; }
+    #liveInfo { font-size: 12px; color: #2563eb; margin-top: 4px; white-space: nowrap; }
+    .drone { font-size: 20px; line-height: 1; }
+
+    /* 右下角：异常事件面板 */
+    #evtPanel {
+      position: absolute; right: 12px; bottom: 12px; z-index: 480;
+      width: 250px; max-height: 48%; display: flex; flex-direction: column;
+      background: rgba(255,255,255,.96); border-radius: 8px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.25); font-size: 13px;
+    }
+    #evtPanel .head { padding: 8px 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
+    #evtPanel .head span { color: #475569; font-weight: normal; margin-left: 6px; }
+    #evtPanel .row { padding: 6px 8px 0; display: flex; gap: 6px; }
+    #evtPanel select { flex: 1; font-size: 12px; min-width: 0; }
+    #evtList { list-style: none; margin: 6px; padding: 0; overflow-y: auto; }
+    #evtList li {
+      display: flex; gap: 8px; align-items: flex-start; padding: 7px 8px; margin-bottom: 4px;
+      cursor: pointer; border: 1px solid #e2e8f0; border-radius: 6px; background: #f8fafc;
+    }
+    #evtList li:hover { background: #eef2f7; }
+    #evtList .evtMain { flex: 1; }
+    #evtList .evtMain b { font-size: 12.5px; }
+    #evtList .badge { font-size: 11px; color: #fff; padding: 0 6px; border-radius: 8px; margin-left: 2px; }
+    #evtList .evtSub { color: #64748b; font-size: 11px; margin-top: 3px; }
+  </style>
+</head>
+<body>
+  <aside id="side">
+    <h2>巡检点清单</h2>
+    <div class="sub">点一下，地图飞过去</div>
+    <ul id="ptList"></ul>
+  </aside>
+  <div id="map"></div>
+  <div id="status">数据：内嵌样例（来自 data/ 文件夹，★第二阶段★改为 /api 接口）</div>
+
+  <!-- 右上角：轨迹任务选择 + 回放控制条 -->
+  <div id="controls">
+    <div class="row">
+      <label>巡检任务：</label>
+      <select id="taskSelect">
+        <option value="task-001" selected>task-001</option>
+        <option value="">— 不显示轨迹 —</option>
+      </select>
+    </div>
+    <div id="trackInfo"></div>
+    <hr>
+    <div class="row">
+      <button id="btnPlay" type="button">▶ 播放</button>
+      <button id="btnRestart" type="button">↺ 重播</button>
+      <label>速度</label>
+      <select id="speedSel">
+        <option value="5">慢 ×5</option>
+        <option value="10" selected>中 ×10</option>
+        <option value="30">快 ×30</option>
+      </select>
+    </div>
+    <div class="row"><input type="range" id="seek" min="0" max="0" value="0"></div>
+    <div id="liveInfo">点「▶ 播放」开始回放</div>
+  </div>
+
+
+  <!-- 右下角：异常事件面板（地图红点 + 事件列表 + 类型/状态筛选） -->
+  <div id="evtPanel">
+    <div class="head">异常事件<span id="evtCount"></span></div>
+    <div class="row">
+      <select id="evtTypeFilter">
+        <option value="">类型·全部</option>
+        <option value="smoke">烟雾</option>
+        <option value="fire">明火</option>
+        <option value="no_helmet">未戴安全帽</option>
+        <option value="intrusion">闯入</option>
+        <option value="equipment_abnormal">设备异常</option>
+      </select>
+      <select id="evtStatusFilter">
+        <option value="">状态·全部</option>
+        <option value="pending">待处理</option>
+        <option value="confirmed">已确认</option>
+        <option value="resolved">已处置</option>
+        <option value="false_alarm">误报</option>
+      </select>
+    </div>
+    <ul id="evtList"></ul>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // ============================================================
+    // ① 数据：先按后端接口的返回格式，把样例数据写死在这里
+    //    （以后 fetch('/api/map') 拿到的就是长这样的 res）
+    // ============================================================
+    var FAKE_RESPONSE = {
+      code: 0, message: "ok",
+      data: {
+        type: "FeatureCollection",
+        features: [
+          // ---- building：建筑物（4 栋楼）----
+          { type: "Feature", properties: { kind: "building", name: "1号厂房" },
+            geometry: { type: "Polygon", coordinates: [[[116.14,39.16],[116.16,39.16],[116.16,39.18],[116.14,39.18],[116.14,39.16]]] } },
+          { type: "Feature", properties: { kind: "building", name: "2号厂房" },
+            geometry: { type: "Polygon", coordinates: [[[116.17,39.15],[116.19,39.15],[116.19,39.17],[116.17,39.17],[116.17,39.15]]] } },
+          { type: "Feature", properties: { kind: "building", name: "办公楼" },
+            geometry: { type: "Polygon", coordinates: [[[116.13,39.12],[116.15,39.12],[116.15,39.14],[116.13,39.14],[116.13,39.12]]] } },
+          { type: "Feature", properties: { kind: "building", name: "仓库" },
+            geometry: { type: "Polygon", coordinates: [[[116.17,39.18],[116.19,39.18],[116.19,39.20],[116.17,39.20],[116.17,39.18]]] } },
+          // ---- road：道路（2 条）----
+          { type: "Feature", properties: { kind: "road", name: "主干道" },
+            geometry: { type: "LineString", coordinates: [[116.12,39.17],[116.20,39.17]] } },
+          { type: "Feature", properties: { kind: "road", name: "次干道" },
+            geometry: { type: "LineString", coordinates: [[116.15,39.12],[116.15,39.20]] } },
+          // ---- inspection_point：巡检点（5 个），priority 数字越小越重要 ----
+          { type: "Feature", properties: { kind: "inspection_point", id: "IP-001", name: "配电房", priority: 1 },
+            geometry: { type: "Point", coordinates: [116.15, 39.18] } },
+          { type: "Feature", properties: { kind: "inspection_point", id: "IP-002", name: "消防栓", priority: 1 },
+            geometry: { type: "Point", coordinates: [116.17, 39.16] } },
+          { type: "Feature", properties: { kind: "inspection_point", id: "IP-003", name: "充电桩", priority: 2 },
+            geometry: { type: "Point", coordinates: [116.13, 39.17] } },
+          { type: "Feature", properties: { kind: "inspection_point", id: "IP-004", name: "门岗", priority: 2 },
+            geometry: { type: "Point", coordinates: [116.12, 39.13] } },
+          { type: "Feature", properties: { kind: "inspection_point", id: "IP-005", name: "水泵房", priority: 3 },
+            geometry: { type: "Point", coordinates: [116.18, 39.19] } }
+        ]
+      }
+    };
+
+    // ============================================================
+    // ①.5 轨迹数据：同样按后端接口格式写死的样例
+    //    以后换成 fetch('http://127.0.0.1:8000/api/trajectory?task_id=task-001')
+    // ============================================================
+    var FAKE_TRACK_RESPONSE = {
+      code: 0, message: "ok",
+      data: {
+        task_id: "task-001",
+        agent_id: "drone-01",
+        status: "finished",
+        track: [
+          { timestamp: "2026-09-01T08:00:00Z", lng: 116.120, lat: 39.130, alt: 15.0, speed: 0.0, heading: 45.0 },
+          { timestamp: "2026-09-01T08:00:40Z", lng: 116.130, lat: 39.170, alt: 15.0, speed: 2.5, heading: 70.0 },
+          { timestamp: "2026-09-01T08:01:20Z", lng: 116.150, lat: 39.180, alt: 15.0, speed: 2.5, heading: 30.0 },
+          { timestamp: "2026-09-01T08:02:30Z", lng: 116.160, lat: 39.180, alt: 15.0, speed: 2.6, heading: 90.0 },
+          { timestamp: "2026-09-01T08:03:10Z", lng: 116.170, lat: 39.160, alt: 15.0, speed: 2.4, heading: 120.0 },
+          { timestamp: "2026-09-01T08:04:40Z", lng: 116.180, lat: 39.190, alt: 15.0, speed: 2.7, heading: 70.0 },
+          { timestamp: "2026-09-01T08:05:20Z", lng: 116.160, lat: 39.200, alt: 15.0, speed: 2.8, heading: 150.0 },
+          { timestamp: "2026-09-01T08:06:00Z", lng: 116.140, lat: 39.180, alt: 15.0, speed: 2.6, heading: 200.0 },
+          { timestamp: "2026-09-01T08:06:40Z", lng: 116.130, lat: 39.160, alt: 15.0, speed: 2.4, heading: 220.0 },
+          { timestamp: "2026-09-01T08:07:00Z", lng: 116.120, lat: 39.130, alt: 15.0, speed: 0.0, heading: 250.0 }
+        ]
+      }
+    };
+
+    // ============================================================
+    // ①.6 异常事件数据：按 /api/events 返回格式写死的样例
+    //    以后换成 fetch('http://127.0.0.1:8000/api/events')
+    // ============================================================
+    var FAKE_EVENTS = {
+      code: 0, message: "ok",
+      data: [
+        { event_id: "EVT-001", task_id: "task-001", timestamp: "2026-09-01T08:02:30Z",
+          lng: 116.160, lat: 39.180, type: "smoke", confidence: 0.92,
+          image_path: "data/images/evt001.jpg", status: "pending" },
+        { event_id: "EVT-002", task_id: "task-001", timestamp: "2026-09-01T08:03:10Z",
+          lng: 116.170, lat: 39.160, type: "no_helmet", confidence: 0.88,
+          image_path: "data/images/evt002.jpg", status: "pending" },
+        { event_id: "EVT-003", task_id: "task-001", timestamp: "2026-09-01T08:04:40Z",
+          lng: 116.180, lat: 39.190, type: "equipment_abnormal", confidence: 0.75,
+          image_path: "data/images/evt003.jpg", status: "confirmed" }
+      ]
+    };
+
+    // ============================================================
+    // ② 地图初始化
+    // ============================================================
+    var map = L.map('map');
+    // 底图：OpenStreetMap（国内慢可换成天地图，见 README 技术栈）
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    // ============================================================
+    // ③ 把数据画上地图（以后换真数据，只动这里上面的取数行）
+    // ============================================================
+    var features = FAKE_RESPONSE.data.features;
+    var allLatLngs = [];     // 收集所有坐标，用来让地图"自动取景"
+    var pointMarkers = {};   // 记住每个巡检点的 marker，点清单要用
+    var PRIORITY_COLORS = { 1: '#d0342c', 2: '#f0a020', 3: '#2f7bd0' }; // 红=最重要
+
+    features.forEach(function (f) {
+      var p = f.properties;          // 属性：kind / name / id ...
+      var g = f.geometry;            // 形状：在哪、什么形状
+
+      if (p.kind === 'building') {
+        // 多边形的第一个坐标环 = 楼的外墙一圈
+        var ring = g.coordinates[0].map(function (c) { return [c[1], c[0]]; }); // [lng,lat]→[lat,lng]
+        L.polygon(ring, { color: '#64748b', weight: 2, fillColor: '#cbd5e1', fillOpacity: 0.7 })
+          .addTo(map).bindPopup('<b>' + p.name + '</b>');
+        ring.forEach(function (c) { allLatLngs.push(c); });
+
+      } else if (p.kind === 'road') {
+        var line = g.coordinates.map(function (c) { return [c[1], c[0]]; });
+        L.polyline(line, { color: '#f59e0b', weight: 4, opacity: 0.8 })
+          .addTo(map).bindPopup('<b>' + p.name + '</b>');
+        line.forEach(function (c) { allLatLngs.push(c); });
+
+      } else if (p.kind === 'inspection_point') {
+        var color = PRIORITY_COLORS[p.priority] || '#64748b';
+        // 圆点标记：priority 1(红) 2(橙) 3(蓝)
+        var m = L.circleMarker([g.coordinates[1], g.coordinates[0]], {
+          radius: 9, color: '#fff', weight: 2,
+          fillColor: color, fillOpacity: 0.95
+        }).addTo(map).bindPopup(
+          '<b>' + p.id + ' ' + p.name + '</b><br>优先级：' + p.priority
+        );
+        pointMarkers[p.id] = m;
+        allLatLngs.push([g.coordinates[1], g.coordinates[0]]);
+        addListItem(p.id, p.name, color);   // 同时加到左侧清单
+      }
+    });
+
+    // ============================================================
+    // ④ 左侧巡检点清单：点一下，地图平滑飞过去并弹出信息
+    // ============================================================
+    function addListItem(id, name, color) {
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="dot" style="background:' + color + '"></span>' + id + ' ' + name;
+      li.onclick = function () {
+        var m = pointMarkers[id];
+        map.flyTo(m.getLatLng(), 16);   // 16 = 飞过去后的放大级别
+        m.openPopup();
+      };
+      document.getElementById('ptList').appendChild(li);
+    }
+
+    // ============================================================
+    // ⑤ 让地图根据园区范围自动取景（不用手算中心点）
+    // ============================================================
+    map.fitBounds(L.latLngBounds(allLatLngs), { padding: [50, 50] });
+
+    // ============================================================
+    // ⑥ 轨迹展示：选任务 → 把飞过的路线画成一条蓝线
+    //    绿点 = 起点，红点 = 终点，🚁 = 回放用的小飞机
+    // ============================================================
+    var trackLayer = L.layerGroup().addTo(map);   // 轨迹专用图层：重画前先整层清空
+    var trackLine = null, startM = null, endM = null;
+    var CUR = null;     // 当前任务的轨迹数据（⑦ 回放动画要用）
+    var drone = null;   // 🚁 小飞机标记（⑦ 让它沿着线飞）
+
+    function showTrack(taskId) {
+      // 清掉上一次画的轨迹 + 停掉正在播的动画 + 重置控制条
+      trackLayer.clearLayers();
+      stopPlayback();
+      btnPlay.textContent = '▶ 播放';
+      liveEl.textContent = '';
+      var info = document.getElementById('trackInfo');
+      if (!taskId) {
+        info.textContent = '';
+        seekEl.max = 0; seekEl.value = 0;   // 没任务时进度条禁用
+        return;
+      }
+
+      // ★第二阶段★：这行换成 fetch('/api/trajectory?task_id=' + taskId)
+      var res = FAKE_TRACK_RESPONSE;
+      CUR = res.data;
+      var t = CUR.track;
+
+      // 给回放做准备：算好每个采样点的时间轴、进度条范围
+      buildTimeline(t);
+      seekEl.max = totalMs();
+      seekEl.value = 0;
+      baseOffsetMs = 0;
+
+      var latlngs = t.map(function (p) { return [p.lat, p.lng]; });  // 注意 [lat, lng] 顺序
+
+      // 飞行路线：蓝色折线（连起所有采样点）
+      trackLine = L.polyline(latlngs, { color: '#2563eb', weight: 4, opacity: 0.85 }).addTo(trackLayer);
+
+      // 起点 = 绿色圆点，终点 = 红色圆点
+      var first = t[0], last = t[t.length - 1];
+      startM = L.circleMarker([first.lat, first.lng], {
+        radius: 8, color: '#fff', weight: 2, fillColor: '#16a34a', fillOpacity: 1
+      }).addTo(trackLayer).bindPopup('<b>起点</b><br>' + first.timestamp);
+      endM = L.circleMarker([last.lat, last.lng], {
+        radius: 8, color: '#fff', weight: 2, fillColor: '#dc2626', fillOpacity: 1
+      }).addTo(trackLayer).bindPopup('<b>终点</b><br>' + last.timestamp);
+
+      // 🚁 小飞机：先停在起点，等 ⑦ 让它飞起来
+      drone = L.marker([first.lat, first.lng], {
+        icon: L.divIcon({ html: '🚁', className: 'drone', iconSize: [26, 26] }),
+        zIndexOffset: 1000   // 让飞机盖在所有图形上面
+      }).addTo(trackLayer);
+
+      // 取景到这条轨迹，右上角信息栏同步显示任务信息
+      map.fitBounds(trackLine.getBounds(), { padding: [60, 60] });
+      info.textContent = CUR.task_id + ' · ' + CUR.agent_id + ' · 共 ' + t.length + ' 个点 · ' + CUR.status;
+      liveEl.textContent = '点「▶ 播放」开始回放';
+    }
+
+    // ============================================================
+    // ⑦ 回放动画：🚁 沿着轨迹"重放"整个巡检过程
+    //    核心思路：轨迹有真实时间戳（间隔几十秒），我们用一个
+    //    "虚拟时钟"按倍速往前拨，每帧把飞机挪到对应位置。
+    // ============================================================
+    var btnPlay = document.getElementById('btnPlay');
+    var btnRestart = document.getElementById('btnRestart');
+    var speedSel = document.getElementById('speedSel');
+    var seekEl = document.getElementById('seek');
+    var liveEl = document.getElementById('liveInfo');
+
+    var rafId = null;        // 动画循环的"门票"（暂停时用来取消）
+    var playing = false;     // 现在是否在播放
+    var baseOffsetMs = 0;    // 虚拟时钟已走到的毫秒数
+    var playStartWall = 0;   // 本次开始播放时的电脑时刻
+    var speedFactor = 10;    // 倍速（1 = 真实时间）
+    var timeline = [];       // 每个采样点相对起点的毫秒数，如 [0, 40000, 80000, ...]
+
+    // 把每个点的时间戳换算成"从起点算起的毫秒"
+    function buildTimeline(track) {
+      timeline = [];
+      var t0 = new Date(track[0].timestamp).getTime();
+      track.forEach(function (p) { timeline.push(new Date(p.timestamp).getTime() - t0); });
+    }
+    function totalMs() { return timeline[timeline.length - 1]; }   // 整条轨迹的总时长
+
+    function stopPlayback() {
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = null;
+      playing = false;
+    }
+
+    // 把 🚁 挪到"虚拟时钟 = offsetMs"时的位置（两个采样点之间按比例插值）
+    function placeDroneAt(offsetMs) {
+      if (!CUR || !drone) return;
+      var t = CUR.track;
+      var total = totalMs();
+      if (offsetMs >= total) offsetMs = total;
+
+      // 找到 offset 落在哪两个采样点之间（k 和 k+1）
+      var k = 0;
+      while (k < t.length - 2 && timeline[k + 1] <= offsetMs) k++;
+      var span = (timeline[k + 1] - timeline[k]) || 1;   // 防止除 0
+      var frac = (offsetMs - timeline[k]) / span;
+      var lat = t[k].lat + (t[k + 1].lat - t[k].lat) * frac;
+      var lng = t[k].lng + (t[k + 1].lng - t[k].lng) * frac;
+      drone.setLatLng([lat, lng]);
+
+      // 信息栏：显示当前"虚拟时间"和所在段的飞行数据
+      var cur = (offsetMs >= total) ? t[t.length - 1] : t[k];
+      var clock = new Date(new Date(t[0].timestamp).getTime() + offsetMs)
+                      .toISOString().slice(11, 19);   // 截出 HH:MM:SS
+      liveEl.textContent = '时间 ' + clock
+        + ' · 高 ' + cur.alt + 'm · 速 ' + (cur.speed || 0).toFixed(1) + 'm/s · 航向 ' + cur.heading + '°';
+    }
+
+    // 每帧被浏览器调用：虚拟时钟前进"过去的时间 × 倍速"，然后挪飞机
+    function playLoop(now) {
+      if (!playing) return;
+      var off = baseOffsetMs + (now - playStartWall) * speedFactor;
+      if (off >= totalMs()) {                 // 走完了 → 停到终点
+        baseOffsetMs = totalMs();
+        placeDroneAt(totalMs());
+        seekEl.value = totalMs();
+        stopPlayback();
+        btnPlay.textContent = '▶ 播放';
+        return;
+      }
+      baseOffsetMs = off;
+      seekEl.value = off;
+      placeDroneAt(off);
+      rafId = requestAnimationFrame(playLoop);
+    }
+
+    // ▶/⏸ 按钮：播放 ↔ 暂停（播完了再点 = 从头播）
+    btnPlay.onclick = function () {
+      if (!CUR) return;
+      if (playing) {
+        stopPlayback();
+        btnPlay.textContent = '▶ 播放';
+        return;
+      }
+      if (baseOffsetMs >= totalMs()) {        // 上一次播完了，这次从头来
+        baseOffsetMs = 0;
+        seekEl.value = 0;
+        placeDroneAt(0);
+      }
+      playing = true;
+      btnPlay.textContent = '⏸ 暂停';
+      playStartWall = performance.now();
+      rafId = requestAnimationFrame(playLoop);
+    };
+
+    // ↺ 重播：回到起点重新开始
+    btnRestart.onclick = function () {
+      if (!CUR) return;
+      stopPlayback();
+      baseOffsetMs = 0;
+      seekEl.value = 0;
+      placeDroneAt(0);
+      playing = true;
+      btnPlay.textContent = '⏸ 暂停';
+      playStartWall = performance.now();
+      rafId = requestAnimationFrame(playLoop);
+    };
+
+    // 拖进度条：直接跳到对应时刻（播放中拖 = 从那里继续播）
+    seekEl.oninput = function () {
+      if (!CUR) return;
+      baseOffsetMs = +seekEl.value;
+      placeDroneAt(baseOffsetMs);
+      playStartWall = performance.now();   // 重新对齐电脑时钟，避免跳变
+    };
+
+    // 切倍速：不改已走的进度，只影响之后走多快
+    speedSel.onchange = function () {
+      speedFactor = +speedSel.value;
+      playStartWall = performance.now();
+    };
+
+    // 下拉框一变化就重画轨迹（页面一打开默认就有 task-001）
+    document.getElementById('taskSelect').addEventListener('change', function () {
+      showTrack(this.value);
+    });
+    showTrack('task-001');
+
+    // ============================================================
+    // ⑧ 异常事件：地图上标红点 + 右下角列表 + 筛选
+    //    每个事件在地图上是一个"图标圈"，点列表/图标弹出详情
+    // ============================================================
+    // 每种类型：图标、颜色、中文名
+    var TYPE_META = {
+      smoke:               { icon: '💨', color: '#ea580c', cn: '烟雾' },
+      fire:                { icon: '🔥', color: '#dc2626', cn: '明火' },
+      no_helmet:           { icon: '⛑️', color: '#7c3aed', cn: '未戴安全帽' },
+      intrusion:           { icon: '🚧', color: '#db2777', cn: '闯入' },
+      equipment_abnormal:  { icon: '⚠️', color: '#2563eb', cn: '设备异常' },
+      _:                   { icon: '❓', color: '#64748b', cn: '未知' }
+    };
+    // 状态的中文名和徽章颜色
+    var STATUS_CN = { pending: '待处理', confirmed: '已确认', resolved: '已处置', false_alarm: '误报' };
+    var STATUS_COLOR = { pending: '#f59e0b', confirmed: '#2563eb', resolved: '#16a34a', false_alarm: '#94a3b8' };
+
+    var evtLayer = L.layerGroup().addTo(map);   // 事件专用图层
+    var evtMarkers = [];                        // 记住每个事件的地图标记
+
+    function drawEvents() {
+      // 清掉旧的事件图标和列表
+      evtLayer.clearLayers();
+      evtMarkers = [];
+      var list = document.getElementById('evtList');
+      list.innerHTML = '';
+      var n = 0;
+
+      var typeF = document.getElementById('evtTypeFilter').value;
+      var statusF = document.getElementById('evtStatusFilter').value;
+
+      // ★第二阶段★：换成 fetch('/api/events?type=' + typeF + '&status=' + statusF)
+      FAKE_EVENTS.data.forEach(function (e) {
+        if (typeF && e.type !== typeF) return;        // 被筛掉了
+        if (statusF && e.status !== statusF) return;
+        n++;
+        var meta = TYPE_META[e.type] || TYPE_META._;
+        var t = e.timestamp.slice(11, 19);            // 截出 HH:MM:SS
+
+        // 1) 地图上的图标标记（圆圈 + 表情符号，按类型配色）
+        var m = L.marker([e.lat, e.lng], {
+          icon: L.divIcon({
+            className: '',                            // 不用 Leaflet 默认图钉样式
+            html: '<div style="border:2px solid ' + meta.color + ';background:#fff;' +
+                  'border-radius:50%;width:26px;height:26px;line-height:24px;' +
+                  'text-align:center;font-size:14px">' + meta.icon + '</div>',
+            iconSize: [26, 26], iconAnchor: [13, 13], popupAnchor: [0, -14]
+          }),
+          zIndexOffset: 900
+        }).addTo(evtLayer);
+        m.bindPopup(
+          '<b>' + e.event_id + ' · ' + meta.cn + '</b><br>' +
+          '置信度：' + Math.round(e.confidence * 100) + '%<br>' +
+          '状态：' + (STATUS_CN[e.status] || e.status) + '<br>' +
+          '时间：' + t + '<br>图片：' + e.image_path
+        );
+        evtMarkers.push(m);
+
+        // 2) 右下角列表里加一行，点它地图飞过去
+        var li = document.createElement('li');
+        li.innerHTML =
+          '<span class="dot" style="background:' + meta.color + ';margin-top:3px"></span>' +
+          '<div class="evtMain"><b>' + e.event_id + ' ' + meta.cn + '</b>' +
+          '<span class="badge" style="background:' + (STATUS_COLOR[e.status] || '#64748b') + '">' +
+          (STATUS_CN[e.status] || e.status) + '</span>' +
+          '<div class="evtSub">' + t + ' · 置信度 ' + Math.round(e.confidence * 100) + '%</div></div>';
+        li.onclick = function () {
+          map.flyTo([e.lat, e.lng], 16);
+          m.openPopup();
+        };
+        list.appendChild(li);
+      });
+
+      document.getElementById('evtCount').textContent = n + ' 条';
+    }
+
+    // 切换筛选条件 → 重新画一遍
+    document.getElementById('evtTypeFilter').onchange = drawEvents;
+    document.getElementById('evtStatusFilter').onchange = drawEvents;
+    drawEvents();   // 页面一打开就显示事件
+  </script>
+</body>
+</html>
