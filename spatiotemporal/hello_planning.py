@@ -35,6 +35,8 @@ def haversine_m(lng1: float, lat1: float, lng2: float, lat2: float) -> float:
 
 
 def plan(points: list[dict], start: dict | None = None) -> dict:
+
+
     """贪心路径规划：从起点（或第一个点）出发，每次去最近的未访问点。
 
     这是「最近邻贪心」的 TSP 近似解，不是全局最优，但第一周够用。

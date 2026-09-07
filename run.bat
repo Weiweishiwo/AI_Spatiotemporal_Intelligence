@@ -12,7 +12,7 @@ REM --- 1. Check Python ---
 where python >nul 2>nul
 if errorlevel 1 (
     echo [ERROR] Python not found.
-    echo Please install Python 3.10+ from https://www.python.org/downloads/
+    echo Please install Python 3.14 from https://www.python.org/downloads/
     echo IMPORTANT: check "Add Python to PATH" during installation.
     pause
     exit /b 1
@@ -34,7 +34,7 @@ if not exist ".venv\Scripts\python.exe" (
 REM --- 3. Install dependencies if not done yet ---
 if not exist ".venv\.deps_installed" (
     echo [2/3] Installing dependencies, first time may take a few minutes...
-    ".venv\Scripts\python.exe" -m pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
+    ".venv\Scripts\python.exe" -m pip install -r requirements.txt -i https://mirrors.aliyun.com/pypi/simple/
     if errorlevel 1 (
         echo [ERROR] Failed to install dependencies.
         echo Tip: delete the .venv folder and run this script again.
