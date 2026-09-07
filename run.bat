@@ -1,5 +1,8 @@
 @echo off
 setlocal
+REM Ensure System32 is on PATH (chcp/where fail if the system PATH entry is missing/corrupt)
+set "PATH=%SystemRoot%\System32;%SystemRoot%;%PATH%"
+
 chcp 65001 >nul
 cd /d "%~dp0"
 
