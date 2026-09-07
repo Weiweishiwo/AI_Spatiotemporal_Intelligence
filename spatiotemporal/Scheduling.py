@@ -71,7 +71,7 @@ def schedule(points: list[dict], start: dict | None = None) -> dict:
 
 
 def load_inspection_points(geojson_path) -> list[dict]:
-    """从园区地图 GeoJSON 里读出所有巡检点（kind=inspection_point）。
+    """从园区地图 GeoJSON 里读出所有巡检点（kind=inspection_point）
 
     把每个巡检点转成 schedule() 需要的格式：{id, lng, lat, priority}。
     """

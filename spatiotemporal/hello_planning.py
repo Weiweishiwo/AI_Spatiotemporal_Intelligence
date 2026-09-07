@@ -56,7 +56,7 @@ def plan(points: list[dict], start: dict | None = None) -> dict:
     all_ids = [p["id"] for p in nodes]
     pos = {p["id"]: (p["lng"], p["lat"]) for p in nodes}
 
-    # 2. 用 networkx 建一个完全图（任意两点之间都有边）边权 = 球面距离
+    # 2. 用 networkx 建一个完全图（任意两点之间都有边），边权 = 球面距离
     G = nx.Graph()
     for i, a in enumerate(all_ids):
         for b in all_ids[i + 1:]:
