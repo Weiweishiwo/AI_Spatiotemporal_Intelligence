@@ -50,10 +50,10 @@ export default function Hero() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link to="/login">
+              <a href="/#solutions">
                 <PlayCircle className="mr-1 h-4 w-4" />
                 预约方案演示
-              </Link>
+              </a>
             </Button>
           </div>
         </motion.div>

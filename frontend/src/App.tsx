@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import IntersectObserver from '@/components/common/IntersectObserver';
+import HoverZoomRipple from '@/components/common/HoverZoomRipple';
 import { Toaster } from '@/components/ui/sonner';
 
 import { routes } from './routes';
@@ -32,6 +33,7 @@ const App: React.FC = () => {
       <Toaster />
       {/*</RouteGuard>*/}
       {/*</AuthProvider>*/}
+      <HoverZoomRipple />
     </Router>
   );
 };

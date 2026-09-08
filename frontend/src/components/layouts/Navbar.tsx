@@ -13,6 +13,7 @@ const navItems = [
   { label: '设备管理', href: '/#capabilities' },
   { label: '案例中心', href: '/#cases' },
   { label: '关于我们', href: '/#clients' },
+  { label: '地图演示', href: '/pure_html_map/' },
 ];
 
 export default function Navbar() {
@@ -61,11 +62,8 @@ export default function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
-          <Button asChild variant="ghost" size="sm" className="text-foreground">
-            <Link to="/login">登录</Link>
-          </Button>
           <Button asChild size="sm">
-            <Link to="/login">免费试用</Link>
+            <a href="/#capabilities">免费试用</a>
           </Button>
         </div>
 
@@ -96,15 +94,10 @@ export default function Navbar() {
                 ))}
               </nav>
               <div className="mt-6 flex flex-col gap-2">
-                <Button asChild variant="outline" className="w-full">
-                  <Link to="/login" onClick={() => setOpen(false)}>
-                    登录
-                  </Link>
-                </Button>
                 <Button asChild className="w-full">
-                  <Link to="/login" onClick={() => setOpen(false)}>
+                  <a href="/#capabilities" onClick={() => setOpen(false)}>
                     免费试用
-                  </Link>
+                  </a>
                 </Button>
               </div>
             </SheetContent>
