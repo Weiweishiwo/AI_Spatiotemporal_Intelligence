@@ -8,6 +8,7 @@ MAP_PATH = ROOT / "data" / "map" / "campus.geojson"
 OUT_PATH = ROOT / "data" / "events" / "events.json"
 
 features = json.loads(MAP_PATH.read_text(encoding="utf-8"))
+
 EVENT_TYPES = ["smoke","fire","no_helmet","intrusion","equipment_abnormal"]
 
 point = []
@@ -32,7 +33,7 @@ for i in range(1,9):
         "lat": round(lat,3),
         "type": random.choice(EVENT_TYPES),         # 提示：random.choice(EVENT_TYPES)
         "confidence": round(random.uniform(0.5,1.0),2),   # 提示：random.uniform(0.5, 1.0)，再 round 到 2 位
-        "image_path": f"data/images/evt{i:03d}.jpg",
+        "image_path": "data/images/placeholder.jpg",
         "status": "pending",
     }
     events.append(event)

@@ -26,7 +26,13 @@
       因为代码本来就是按后端返回的格式写的，到时候只改一行取数的地方。
   -->
 
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Leaflet:优先国内 CDN(否则国内常加载失败→地图空白),失败自动回退 unpkg -->
+  <link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+  <script>
+    if (typeof L === 'undefined') {
+      document.write('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">');
+    }
+  </script>
   <style>
     html, body { height: 100%; margin: 0; font-family: "Microsoft YaHei", sans-serif; }
     body { display: flex; }
@@ -100,6 +106,9 @@
 </head>
 <body>
   <aside id="side">
+    <div style="margin-bottom:10px;font-size:12px">
+      <a href="/" style="color:#7dd3fc">← 返回官网首页</a>
+    </div>
     <h2>巡检点清单</h2>
     <div class="sub">点一下，地图飞过去</div>
     <ul id="ptList"></ul>
@@ -156,7 +165,12 @@
     <ul id="evtList"></ul>
   </div>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <script>
+    if (typeof L === 'undefined') {
+      document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.min.js"><\/script>');
+    }
+  </script>
   <script>
     // ============================================================
     // ① 数据：先按后端接口的返回格式，把样例数据写死在这里
@@ -244,10 +258,10 @@
     // ② 地图初始化
     // ============================================================
     var map = L.map('map');
-    // 底图：OpenStreetMap（国内慢可换成天地图，见 README 技术栈）
-    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // 底图：高德路网（国内可直连、免 key；之前用 OSM 在国内经常加载不出）
+    L.tileLayer('https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
       maxZoom: 19,
-      attribution: '&copy; OpenStreetMap contributors'
+      attribution: '&copy; 高德地图'
     }).addTo(map);
 
     // ============================================================
