@@ -31,17 +31,19 @@ def haversine_m(lng1: float, lat1: float, lng2: float, lat2: float) -> float:
     d_lat = math.radians(lat2 - lat1)
     d_lng = math.radians(lng2 - lng1)
     a = math.sin(d_lat / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(d_lng / 2) ** 2
+    a = min(1.0, a)  # 浮点误差可能让 a 略超 1，asin 会报 domain error
     return 2 * R * math.asin(math.sqrt(a))
 
 
 def plan(points: list[dict], start: dict | None = None) -> dict:
-
-
     """贪心路径规划：从起点（或第一个点）出发，每次去最近的未访问点。
 
     这是「最近邻贪心」的 TSP 近似解，不是全局最优，但第一周够用。
     第二周可以在这里换成更优算法，或加约束（优先级、障碍物、任务调度）。
     """
+    if not points:
+        return {"route": [], "total_distance_m": 0.0}
+
     # 1. 收集所有节点：巡检点 + 可选起点（start 可能不在 points 里，单独加入并去重）
     nodes = list(points)
     current = None
@@ -66,7 +68,7 @@ def plan(points: list[dict], start: dict | None = None) -> dict:
     route = [current]
     unvisited = set(all_ids) - {current}
     while unvisited:
-        nxt = min(unvisited, key=lambda x: G[current][x]["weight"])
+        nxt = min(unvisited, key=lambda x: (G[current][x]["weight"], x))
         route.append(nxt)
         unvisited.remove(nxt)
         current = nxt
