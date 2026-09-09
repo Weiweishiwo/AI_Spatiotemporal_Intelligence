@@ -10,7 +10,7 @@ from ultralytics import  YOLO
 from pathlib import Path
 import sys
 
-# 项目根目录：本文件在 Xperception/ 下，往上一级就是根目录
+# 项目根目录：本文件在 perception/ 下，往上一级就是根目录
 BASE_DIR = Path(__file__).resolve().parent.parent
 IMAGE_DIR = BASE_DIR / "data" / "images"
 MODEL_PATH = Path(__file__).resolve().parent.parent / "yolov8n.pt"
