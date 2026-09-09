@@ -32,9 +32,12 @@
     };
   </script>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <!-- api.js：首页与数据详情页共享的后端数据工具；head 同步加载，保证 content 内联脚本执行时 window.API 已就绪 -->
+  <script src="{{ url_for('static', filename='js/api.js') }}"></script>
 </head>
 <body class="bg-background text-foreground min-h-screen antialiased">
   {% block content %}{% endblock %}
   <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+  <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 </body>
 </html>

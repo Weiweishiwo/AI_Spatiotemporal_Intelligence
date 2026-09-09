@@ -29,9 +29,20 @@
       <a href="/map" class="rounded-md px-3 py-2 text-sm font-medium text-foreground hover:bg-secondary hover:text-foreground transition-colors">地图可视化</a>
     </nav>
 
-    <div class="hidden items-center gap-2 md:flex">
-      <a href="/login" class="rounded-md px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors">登录</a>
-      <a href="/login" class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity">免费试用</a>
+    <div class="hidden items-center gap-3 md:flex">
+      <!-- 后端在线状态点：auth.js 探测 /api/health 后切 .is-on/.is-off -->
+      <span class="js-online inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground">
+        <span class="auth-dot"></span><span class="js-online-text">后端在线</span>
+      </span>
+      <div class="js-auth-guest flex items-center gap-2">
+        <a href="/login" class="rounded-md px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors">登录</a>
+        <a href="/login" class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity">免费试用</a>
+      </div>
+      <!-- 已登录组：初态隐藏，auth.js 读会话后切换显隐 -->
+      <div class="js-auth-user flex items-center gap-3" style="display:none">
+        <a href="/map" class="js-auth-name rounded-md px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors">用户名</a>
+        <button type="button" data-auth-logout class="cursor-pointer rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">退出登录</button>
+      </div>
     </div>
 
     <button id="menu-btn" class="md:hidden p-2 text-foreground" aria-label="打开菜单">
@@ -52,9 +63,16 @@
       <a href="/#clients" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">关于我们</a>
       <a href="/map" class="rounded-md px-3 py-2.5 text-sm font-medium text-primary hover:bg-secondary">地图可视化</a>
     </nav>
-    <div class="mt-4 flex flex-col gap-2">
+    <div class="js-online mt-4 inline-flex items-center gap-1.5 self-start rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">
+      <span class="auth-dot"></span><span class="js-online-text">后端在线</span>
+    </div>
+    <div class="js-auth-guest mt-3 flex flex-col gap-2">
       <a href="/login" class="rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium">登录</a>
       <a href="/login" class="rounded-md bg-primary px-4 py-2.5 text-center text-sm font-medium text-primary-foreground">免费试用</a>
+    </div>
+    <div class="js-auth-user mt-3 flex flex-col gap-2" style="display:none">
+      <a href="/map" class="js-auth-name rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium">用户名</a>
+      <button type="button" data-auth-logout class="cursor-pointer rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium text-muted-foreground hover:bg-secondary">退出登录</button>
     </div>
   </div>
 </header>
@@ -136,23 +154,29 @@
           </svg>
         </div>
 
-        <!-- 数据卡片 -->
+        <!-- 数据卡片：可点击 → 详情页（数字由 api.js initHomeStats 拉后端真实统计，初始 '--' 占位） -->
         <div class="relative z-10 mt-6 grid grid-cols-3 gap-3">
-          <div class="tech-card rounded-xl p-3 md:p-4">
+          <a href="/robots" class="group relative block tech-card rounded-xl p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md md:p-4" title="巡检机器人详情">
             <svg class="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="8" x="5" y="2" rx="2" /><path d="M2 17h20" /><path d="M6 17v-5" /><path d="M18 17v-5" /><circle cx="12" cy="12" r="0.5" /></svg>
             <p class="mt-2 text-xs text-muted-foreground">在线巡检机器人</p>
-            <p class="mt-0.5 text-xl font-semibold text-primary md:text-2xl">128 <span class="text-xs font-normal text-muted-foreground">台</span></p>
-          </div>
-          <div class="tech-card rounded-xl p-3 md:p-4">
+            <p class="mt-0.5 text-xl font-semibold tabular-nums text-primary md:text-2xl"><span id="stat-robots-val">--</span> <span class="text-xs font-normal text-muted-foreground">台</span></p>
+            <p class="mt-1 text-[10px] leading-none text-muted-foreground/70">task-001 演示数据</p>
+            <svg class="absolute right-2 top-2 h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+          </a>
+          <a href="/nodes" class="group relative block tech-card rounded-xl p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md md:p-4" title="感知节点（巡检点位）详情">
             <svg class="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2" /></svg>
             <p class="mt-2 text-xs text-muted-foreground">实时感知节点</p>
-            <p class="mt-0.5 text-xl font-semibold text-primary md:text-2xl">3.6k <span class="text-xs font-normal text-muted-foreground">个</span></p>
-          </div>
-          <div class="tech-card rounded-xl p-3 md:p-4">
+            <p class="mt-0.5 text-xl font-semibold tabular-nums text-primary md:text-2xl"><span id="stat-nodes-val">--</span> <span class="text-xs font-normal text-muted-foreground">个</span></p>
+            <p class="mt-1 text-[10px] leading-none text-muted-foreground/70">task-001 演示数据</p>
+            <svg class="absolute right-2 top-2 h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+          </a>
+          <a href="/coverage" class="group relative block tech-card rounded-xl p-3 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md md:p-4" title="巡检覆盖率详情">
             <svg class="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z" /><path d="m9 12 2 2 4-4" /></svg>
             <p class="mt-2 text-xs text-muted-foreground">巡检覆盖率</p>
-            <p class="mt-0.5 text-xl font-semibold text-primary md:text-2xl">99.8 <span class="text-xs font-normal text-muted-foreground">%</span></p>
-          </div>
+            <p class="mt-0.5 text-xl font-semibold tabular-nums text-primary md:text-2xl"><span id="stat-coverage-val">--</span> <span class="text-xs font-normal text-muted-foreground">%</span></p>
+            <p class="mt-1 text-[10px] leading-none text-muted-foreground/70">task-001 演示数据</p>
+            <svg class="absolute right-2 top-2 h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+          </a>
         </div>
       </div>
     </div>
@@ -172,7 +196,7 @@
 
     <div class="mt-14 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
       {% set capabilities = [
-        ('全域感知', '融合激光雷达、视觉相机与环境传感器，3.6k 感知节点毫秒级采集园区地面状态', 'M3 12h4l3-9 4 18 3-9h4'),
+        ('全域感知', '融合激光雷达、视觉相机与环境传感器，多类感知节点毫秒级采集园区地面状态', 'M3 12h4l3-9 4 18 3-9h4'),
         ('空间定位', '厘米级高精定位与空间索引，让每个异常事件都对应唯一时空坐标', 'M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z|circle:12,10,3'),
         ('AI 视觉识别', '机器视觉模型实时识别路面破损、异物堆积、违规占道等 40+ 类事件', 'M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z|circle:12,12,3'),
         ('多智能体协同', '巡检机器人与云端智能体任务协同，动态规划最优巡检路径', 'M12 2v4|M16.24 7.76l-2.12 2.12|M21 12h-4|M16.24 16.24l-2.12-2.12|M12 18v4|M7.76 16.24l2.12-2.12|M7 12H3|M7.76 7.76l2.12 2.12|circle:12,12,4'),
@@ -180,7 +204,7 @@
         ('数字孪生底座', '园区三维孪生场景全要素映射，历史轨迹回放与未来态势推演', 'M11 3a2 2 0 0 0-2 2v3.1a2 2 0 0 1-.9 1.66L6.9 10.6a2 2 0 0 0-.9 1.66V19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-6.74a2 2 0 0 0-.9-1.66l-1.2-.84a2 2 0 0 1-.9-1.66V5a2 2 0 0 0-2-2Z|M11 3v18')
       ] %}
       {% for title, desc, paths in capabilities %}
-      <div class="reveal tech-card group rounded-2xl p-6 transition-transform duration-300 hover:-translate-y-1">
+      <a href="/capabilities#cap-{{ loop.index }}" title="查看「{{ title }}」能力详情" class="reveal tech-card group relative block rounded-2xl p-6 transition-transform duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
         <div class="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10">
           <svg class="h-5 w-5 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             {% for p in paths.split('|') %}
@@ -195,7 +219,8 @@
         </div>
         <h3 class="mt-5 text-base font-semibold">{{ title }}</h3>
         <p class="mt-2 text-sm leading-relaxed text-muted-foreground">{{ desc }}</p>
-      </div>
+        <svg class="absolute right-4 top-4 h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+      </a>
       {% endfor %}
     </div>
   </div>
@@ -214,7 +239,7 @@
     </div>
 
     <div class="mt-14 grid gap-5 lg:grid-cols-3">
-      <div class="reveal tech-card rounded-2xl p-7">
+      <a href="/solutions#sol-1" title="查看「厂区地面智能巡检」方案详情" class="reveal tech-card group relative block rounded-2xl p-7 transition-transform duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
         <span class="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">智能制造园区</span>
         <h3 class="mt-4 text-lg font-semibold">厂区地面智能巡检</h3>
         <p class="mt-2 text-sm leading-relaxed text-muted-foreground">面向大型制造厂区，机器人沿产线动线自动巡检地面缺陷、物料散落与安全通道占用，异常实时上报 MES。</p>
@@ -223,9 +248,10 @@
           <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-accent"></span>地面缺陷识别准确率 98.6%</li>
           <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-accent"></span>工单自动派发至责任班组</li>
         </ul>
-      </div>
+        <svg class="absolute right-4 top-4 h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+      </a>
 
-      <div class="reveal tech-card rounded-2xl p-7" style="transition-delay: 0.1s">
+      <a href="/solutions#sol-2" title="查看「仓储动线安全监测」方案详情" class="reveal tech-card group relative block rounded-2xl p-7 transition-transform duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md" style="transition-delay: 0.1s">
         <span class="inline-flex rounded-full bg-accent/10 px-3 py-1 text-xs font-medium text-accent">物流枢纽园区</span>
         <h3 class="mt-4 text-lg font-semibold">仓储动线安全监测</h3>
         <p class="mt-2 text-sm leading-relaxed text-muted-foreground">针对物流园区叉车动线与人车混行区域，AI 视觉实时识别违规穿越、货物倒塌风险，联动声光告警。</p>
@@ -234,9 +260,10 @@
           <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-primary"></span>月台拥堵态势提前推演</li>
           <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-primary"></span>事故率平均下降 62%</li>
         </ul>
-      </div>
+        <svg class="absolute right-4 top-4 h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+      </a>
 
-      <div class="reveal tech-card rounded-2xl p-7" style="transition-delay: 0.2s">
+      <a href="/solutions#sol-3" title="查看「危化区域合规巡检」方案详情" class="reveal tech-card group relative block rounded-2xl p-7 transition-transform duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md" style="transition-delay: 0.2s">
         <span class="inline-flex rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary">能源化工园区</span>
         <h3 class="mt-4 text-lg font-semibold">危化区域合规巡检</h3>
         <p class="mt-2 text-sm leading-relaxed text-muted-foreground">在防爆区域部署本体安全型巡检机器人，替代人工完成泄漏检测、地面积液与合规着装检查。</p>
@@ -245,7 +272,8 @@
           <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-accent"></span>泄漏溯源定位精度 ±0.5m</li>
           <li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-accent"></span>巡检合规报告一键导出</li>
         </ul>
-      </div>
+        <svg class="absolute right-4 top-4 h-3 w-3 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
+      </a>
     </div>
   </div>
 </section>
@@ -262,7 +290,7 @@
     </div>
 
     <div class="mt-14 grid gap-5 md:grid-cols-2">
-      <div class="reveal tech-card overflow-hidden rounded-2xl">
+      <a href="/cases#case-1" title="查看「华北智造产业园」案例详情" class="reveal tech-card group relative block overflow-hidden rounded-2xl transition-transform duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
         <div class="relative h-52 bg-secondary md:h-60">
           <div class="blueprint-grid absolute inset-0"></div>
           <div class="drift-3 pointer-events-none absolute left-1/4 top-1/4 h-40 w-40 rounded-full bg-primary/10 blur-3xl"></div>
@@ -271,6 +299,7 @@
             <p class="mt-3 text-lg font-semibold">华北智造产业园</p>
             <p class="mt-1 text-sm text-muted-foreground">汽车零部件 · 占地 2.4km² · 86 台机器人</p>
           </div>
+          <svg class="absolute right-5 top-5 h-3 w-3 text-primary opacity-0 transition-opacity group-hover:opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
         </div>
         <div class="p-7">
           <p class="text-sm leading-relaxed text-muted-foreground">部署 6 个月内，地面缺陷平均处置时长从 4.2 小时缩短至 38 分钟，人工巡检成本下降 58%。</p>
@@ -279,9 +308,9 @@
             <span class="rounded-lg bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary">巡检成本 ↓ 58%</span>
           </div>
         </div>
-      </div>
+      </a>
 
-      <div class="reveal tech-card overflow-hidden rounded-2xl" style="transition-delay: 0.1s">
+      <a href="/cases#case-2" title="查看「华南智慧物流枢纽」案例详情" class="reveal tech-card group relative block overflow-hidden rounded-2xl transition-transform duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md" style="transition-delay: 0.1s">
         <div class="relative h-52 bg-secondary md:h-60">
           <div class="blueprint-grid absolute inset-0"></div>
           <div class="drift-1 pointer-events-none absolute right-1/4 top-1/4 h-40 w-40 rounded-full bg-accent/10 blur-3xl"></div>
@@ -290,6 +319,7 @@
             <p class="mt-3 text-lg font-semibold">华南智慧物流枢纽</p>
             <p class="mt-1 text-sm text-muted-foreground">电商仓配 · 42 万m² 库区 · 210 路感知节点</p>
           </div>
+          <svg class="absolute right-5 top-5 h-3 w-3 text-accent opacity-0 transition-opacity group-hover:opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6" /></svg>
         </div>
         <div class="p-7">
           <p class="text-sm leading-relaxed text-muted-foreground">人车混行区域实现全时段无死角监测，叉车安全事故同比下降 62%，保险理赔支出减少 40%。</p>
@@ -298,7 +328,7 @@
             <span class="rounded-lg bg-accent/5 px-3 py-1.5 text-sm font-medium text-accent">理赔支出 ↓ 40%</span>
           </div>
         </div>
-      </div>
+      </a>
     </div>
   </div>
 </section>
@@ -317,9 +347,9 @@
     <div class="reveal mt-14 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
       {% set clients = ['华东智造', '华南物流', '西部能源', '北方钢铁', '东南化工', '中部汽车'] %}
       {% for name in clients %}
-      <div class="tech-card flex h-20 items-center justify-center rounded-xl">
-        <span class="text-sm font-semibold text-muted-foreground">{{ name }}</span>
-      </div>
+      <a href="/clients" title="查看合作客户名录" class="tech-card group flex h-20 items-center justify-center rounded-xl transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md">
+        <span class="text-sm font-semibold text-muted-foreground transition-colors group-hover:text-foreground">{{ name }}</span>
+      </a>
       {% endfor %}
     </div>
   </div>
@@ -342,4 +372,12 @@
     </div>
   </div>
 </footer>
+
+<script>
+  // 三卡真实统计：载入即刷，此后每分钟轻刷（api.js 自守卫，数字为后端真实值）
+  if (window.API) {
+    API.initHomeStats();
+    setInterval(API.initHomeStats, 60000);
+  }
+</script>
 {% endblock %}

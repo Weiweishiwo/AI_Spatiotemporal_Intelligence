@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block meta %}
+<title>落地案例 · AI 智能体时空智能平台</title>
+<meta name="description" content="华北智造产业园案例挂接 task-001 演示数据实况；华南智慧物流枢纽为宣传占位。" />
+{% endblock %}
+
+{% block content %}
+<!-- ===== 顶部导航（同官网，当前页不高亮） ===== -->
+<header class="fixed inset-x-0 top-0 z-50 bg-background/85 backdrop-blur-md border-b border-border">
+  <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-8">
+    <a href="/" class="flex items-center gap-2 shrink-0">
+      <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+        <svg class="h-5 w-5 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" />
+          <path d="M4 6V4a2 2 0 0 1 2-2h2" />
+          <path d="M5 11.07 3.34 13a10 10 0 0 0 14.66 0" />
+          <path d="M20 18v2a2 2 0 0 1-2 2h-2" />
+          <path d="M13 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
+          <path d="M13 11V6" />
+        </svg>
+      </div>
+      <span class="text-base font-semibold">AI 智能体时空智能平台</span>
+    </a>
+
+    <nav class="hidden items-center gap-1 md:flex">
+      <a href="/" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">首页</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">产品能力</a>
+      <a href="/#solutions" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">解决方案</a>
+      <a href="/#solutions" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">时空智能</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">设备管理</a>
+      <a href="/#cases" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">案例中心</a>
+      <a href="/#clients" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">关于我们</a>
+      <a href="/map" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">地图可视化</a>
+    </nav>
+
+    <div class="hidden items-center gap-3 md:flex">
+      <span class="js-online inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground">
+        <span class="auth-dot"></span><span class="js-online-text">后端在线</span>
+      </span>
+      <div class="js-auth-guest flex items-center gap-2">
+        <a href="/login" class="rounded-md px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors">登录</a>
+        <a href="/login" class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity">免费试用</a>
+      </div>
+      <div class="js-auth-user flex items-center gap-3" style="display:none">
+        <a href="/map" class="js-auth-name rounded-md px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors">用户名</a>
+        <button type="button" data-auth-logout class="cursor-pointer rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">退出登录</button>
+      </div>
+    </div>
+
+    <button id="menu-btn" class="md:hidden p-2 text-foreground" aria-label="打开菜单">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
+      </svg>
+    </button>
+  </div>
+
+  <div id="mobile-menu" class="hidden md:hidden border-t border-border bg-background px-4 py-4">
+    <nav class="flex flex-col gap-1">
+      <a href="/" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">首页</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">产品能力</a>
+      <a href="/#solutions" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">解决方案</a>
+      <a href="/#solutions" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">时空智能</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">设备管理</a>
+      <a href="/#cases" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">案例中心</a>
+      <a href="/#clients" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">关于我们</a>
+      <a href="/map" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">地图可视化</a>
+    </nav>
+    <div class="js-online mt-4 inline-flex items-center gap-1.5 self-start rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">
+      <span class="auth-dot"></span><span class="js-online-text">后端在线</span>
+    </div>
+    <div class="js-auth-guest mt-3 flex flex-col gap-2">
+      <a href="/login" class="rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium">登录</a>
+      <a href="/login" class="rounded-md bg-primary px-4 py-2.5 text-center text-sm font-medium text-primary-foreground">免费试用</a>
+    </div>
+    <div class="js-auth-user mt-3 flex flex-col gap-2" style="display:none">
+      <a href="/map" class="js-auth-name rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium">用户名</a>
+      <button type="button" data-auth-logout class="cursor-pointer rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium text-muted-foreground hover:bg-secondary">退出登录</button>
+    </div>
+  </div>
+</header>
+
+<!-- ===== 正文 ===== -->
+<div class="blueprint-grid pointer-events-none fixed inset-0 opacity-60"></div>
+<main class="relative mx-auto max-w-7xl px-4 pt-24 pb-20 md:px-8 md:pt-28">
+
+  <nav class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+    <a href="/" class="text-muted-foreground hover:text-primary transition-colors">← 返回首页</a>
+    <span class="text-border">/</span>
+    <span class="font-medium">落地案例</span>
+    <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground">演示数据 · 单任务 task-001</span>
+  </nav>
+
+  <div class="mt-6 flex flex-col gap-1">
+    <h1 class="text-2xl font-semibold md:text-3xl">落地案例 · 真实数据复盘</h1>
+    <p class="text-sm text-muted-foreground">演示数据集为华北厂区单次巡检任务（task-001），仅「华北智造产业园」挂接真实数据；横幅中的服务规模与成效为既有宣传文案，非演示统计。数据实时取自后端 <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs">/api/map</span>、<span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs">/api/trajectory</span> 与 <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs">/api/events</span>。</p>
+  </div>
+
+  <!-- ===== case-1 华北智造产业园（挂 task-001 真实数据） ===== -->
+  <section id="case-1" class="tech-card mt-8 overflow-hidden rounded-2xl">
+    <div class="relative bg-secondary/60 px-6 py-8 md:px-10">
+      <div class="blueprint-grid pointer-events-none absolute inset-0 opacity-50"></div>
+      <div class="relative z-10 flex flex-col gap-5 md:flex-row md:items-center">
+        <div class="flex items-center gap-4">
+          <div class="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-primary/10">
+            <svg class="h-6 w-6 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20h20" /><path d="M4 20V8l8-5 8 5v12" /><path d="M9 20v-6h6v6" /></svg>
+          </div>
+          <div>
+            <p class="text-[10px] font-medium tracking-widest text-accent">CASE 01</p>
+            <h3 class="text-xl font-semibold md:text-2xl">华北智造产业园</h3>
+            <p class="mt-1 text-sm text-muted-foreground">汽车零部件 · 占地 2.4km² · 86 台机器人</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-3 md:ml-auto">
+          <span class="rounded-lg bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary">处置时长 ↓ 85%</span>
+          <span class="rounded-lg bg-primary/5 px-3 py-1.5 text-sm font-medium text-primary">巡检成本 ↓ 58%</span>
+        </div>
+      </div>
+    </div>
+    <div class="grid gap-6 p-6 md:p-8 lg:grid-cols-2 lg:gap-10">
+      <div class="min-w-0">
+        <p class="text-[10px] font-medium tracking-widest text-muted-foreground">项目成效（宣传口径，非演示统计）</p>
+        <p class="mt-3 text-sm leading-relaxed text-muted-foreground">部署 6 个月内，地面缺陷平均处置时长从 4.2 小时缩短至 38 分钟，人工巡检成本下降 58%。</p>
+        <div class="mt-4 flex flex-wrap gap-2">
+          <span class="rounded-lg border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground">本页仅挂接单次演示任务数据</span>
+          <a href="/coverage" class="rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">覆盖率口径说明 →</a>
+        </div>
+      </div>
+      <div class="min-w-0">
+        <div class="rounded-xl bg-secondary/50 p-5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm font-medium">联动演示数据 · 华北厂区 task-001 实况</p>
+            <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">/api/map + /api/trajectory + /api/events</span>
+          </div>
+          <div class="mt-3 divide-y divide-border text-sm">
+            <div class="flex flex-wrap items-center justify-between gap-2 py-2">
+              <span class="text-xs text-muted-foreground">任务 ID</span>
+              <span id="cc-task" class="font-mono text-xs font-medium">--</span>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-2 py-2">
+              <span class="text-xs text-muted-foreground">执行智能体</span>
+              <span id="cc-agent" class="font-mono text-xs font-medium">--</span>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-2 py-2">
+              <span class="text-xs text-muted-foreground">任务状态</span>
+              <span class="inline-flex items-center gap-1.5 text-xs font-medium"><span id="cc-status-dot" class="inline-block h-2 w-2 rounded-full bg-muted-foreground"></span><span id="cc-status-txt">--</span></span>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-2 py-2">
+              <span class="text-xs text-muted-foreground">任务时长</span>
+              <span id="cc-dur" class="tabular-nums text-xs font-medium">--</span>
+            </div>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-3">
+            <div class="rounded-xl bg-card p-3">
+              <p class="text-xs text-muted-foreground">覆盖巡检点</p>
+              <p class="mt-1 text-lg font-semibold tabular-nums text-primary"><span id="cc-nodes">--</span> <span class="text-xs font-normal text-muted-foreground">个</span></p>
+            </div>
+            <div class="rounded-xl bg-card p-3">
+              <p class="text-xs text-muted-foreground">点位覆盖率</p>
+              <p class="mt-1 text-lg font-semibold tabular-nums text-primary"><span id="cc-cov">--</span> <span class="text-xs font-normal text-muted-foreground">%</span></p>
+            </div>
+            <div class="rounded-xl bg-card p-3">
+              <p class="text-xs text-muted-foreground">关联异常事件</p>
+              <p class="mt-1 text-lg font-semibold tabular-nums text-accent"><span id="cc-events">--</span> <span class="text-xs font-normal text-muted-foreground">起</span></p>
+            </div>
+            <div class="rounded-xl bg-card p-3">
+              <p class="text-xs text-muted-foreground">巡航里程</p>
+              <p class="mt-1 text-lg font-semibold tabular-nums text-primary"><span id="cc-km">--</span> <span class="text-xs font-normal text-muted-foreground">km</span></p>
+            </div>
+          </div>
+          <p class="mt-3 text-xs text-muted-foreground" id="cc-note">任务统计为 speed×Δt 积分，口径同详情页</p>
+          <div class="mt-4 flex flex-wrap gap-2">
+            <a href="/robots" class="rounded-lg bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">机器人运行详情 →</a>
+            <a href="/nodes" class="rounded-lg bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">感知节点与事件 →</a>
+            <a href="/coverage" class="rounded-lg bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors">覆盖率明细 →</a>
+          </div>
+        </div>
+        <p class="mt-3 text-[10px] leading-relaxed text-muted-foreground/70">演示园区要素：建筑 <span id="cc-b" class="font-mono">--</span> 栋 · 道路 <span id="cc-r" class="font-mono">--</span> 条 · 巡检点 <span id="cc-p" class="font-mono">--</span> 个（GeoJSON 实时统计）。</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== case-2 华南智慧物流枢纽（无对应数据，静态占位） ===== -->
+  <section id="case-2" class="tech-card mt-5 overflow-hidden rounded-2xl">
+    <div class="relative bg-secondary/60 px-6 py-8 md:px-10">
+      <div class="blueprint-grid pointer-events-none absolute inset-0 opacity-50"></div>
+      <div class="relative z-10 flex flex-col gap-5 md:flex-row md:items-center">
+        <div class="flex items-center gap-4">
+          <div class="flex h-12 w-12 flex-none items-center justify-center rounded-xl bg-accent/10">
+            <svg class="h-6 w-6 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2" /><path d="M15 18h-5" /><path d="M20 18h1a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.62l-3.48-4.35a1 1 0 0 0-.78-.38H14" /><circle cx="7" cy="18" r="2" /><circle cx="17" cy="18" r="2" /></svg>
+          </div>
+          <div>
+            <p class="text-[10px] font-medium tracking-widest text-accent">CASE 02</p>
+            <h3 class="text-xl font-semibold md:text-2xl">华南智慧物流枢纽</h3>
+            <p class="mt-1 text-sm text-muted-foreground">电商仓配 · 42 万m² 库区 · 210 路感知节点</p>
+          </div>
+        </div>
+        <div class="flex flex-wrap gap-3 md:ml-auto">
+          <span class="rounded-lg bg-accent/5 px-3 py-1.5 text-sm font-medium text-accent">安全事故 ↓ 62%</span>
+          <span class="rounded-lg bg-accent/5 px-3 py-1.5 text-sm font-medium text-accent">理赔支出 ↓ 40%</span>
+        </div>
+      </div>
+    </div>
+    <div class="grid gap-6 p-6 md:p-8 lg:grid-cols-2 lg:gap-10">
+      <div class="min-w-0">
+        <p class="text-[10px] font-medium tracking-widest text-muted-foreground">项目成效（宣传口径，非演示统计）</p>
+        <p class="mt-3 text-sm leading-relaxed text-muted-foreground">人车混行区域实现全时段无死角监测，叉车安全事故同比下降 62%，保险理赔支出减少 40%。</p>
+      </div>
+      <div class="min-w-0">
+        <div class="rounded-xl bg-secondary/50 p-5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <p class="text-sm font-medium">联动演示数据</p>
+            <span class="inline-flex items-center rounded-full bg-card px-2.5 py-0.5 text-[10px] text-muted-foreground">暂无对应数据</span>
+          </div>
+          <div class="mt-4 rounded-xl border border-dashed border-border bg-card p-5">
+            <div class="flex items-start gap-3">
+              <svg class="mt-0.5 h-4 w-4 flex-none text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
+              <div class="text-xs leading-relaxed text-muted-foreground">
+                <p>当前演示数据集为厂区巡检场景（task-001），本案例暂无对应联动数据，暂以宣传文案展示形态。</p>
+                <div class="mt-3 flex flex-wrap gap-2">
+                  <a href="/coverage" class="rounded-lg border border-border bg-background px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground transition-colors">查看厂区演示覆盖率 →</a>
+                  <a href="/login" class="rounded-lg border border-border bg-background px-3 py-1.5 font-medium text-muted-foreground hover:text-foreground transition-colors">登录预约演示 →</a>
+                </div>
+              </div>
+            </div>
+          </div>
+          <p class="mt-3 text-[10px] leading-relaxed text-muted-foreground/70">左栏为案例宣传口径，非演示数据统计；后续接入华南物流数据集后此处将挂真实联动面板。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== 页脚 ===== -->
+<footer class="relative border-t border-border bg-background py-12">
+  <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 md:flex-row md:px-8">
+    <div class="flex items-center gap-2">
+      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+        <svg class="h-4 w-4 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" /><path d="M4 6V4a2 2 0 0 1 2-2h2" /><path d="M5 11.07 3.34 13a10 10 0 0 0 14.66 0" /><path d="M20 18v2a2 2 0 0 1-2 2h-2" /><path d="M13 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" /><path d="M13 11V6" /></svg>
+      </div>
+      <span class="text-sm font-semibold">AI 智能体时空智能平台</span>
+    </div>
+    <p class="text-xs text-muted-foreground">© 2026 AI 智能体时空智能平台 · 园区地面智能巡检</p>
+    <div class="flex items-center gap-5 text-sm text-muted-foreground">
+      <a href="/#capabilities" class="hover:text-primary transition-colors">产品能力</a>
+      <a href="/#cases" class="hover:text-primary transition-colors">案例中心</a>
+      <a href="/login" class="hover:text-primary transition-colors">登录</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var A = window.API;
+  if (!A) return;
+  var STATUS_META = {
+    finished: { cn: '已完成', color: '#16a34a' },
+    running: { cn: '执行中', color: '#2563eb' },
+    pending: { cn: '待执行', color: '#f59e0b' },
+    failed: { cn: '已失败', color: '#dc2626' }
+  };
+
+  function fail() {
+    ['cc-task', 'cc-agent', 'cc-status-txt', 'cc-dur', 'cc-nodes', 'cc-cov', 'cc-events', 'cc-km', 'cc-b', 'cc-r', 'cc-p'].forEach(function (id) {
+      var n = document.getElementById(id);
+      if (n) n.textContent = '--';
+    });
+    var note = document.getElementById('cc-note');
+    if (note) note.textContent = '后端离线，演示数据暂缺';
+    heal();
+  }
+
+  // 自愈：数据请求失败后每 4s 探一次后端健康，恢复即整页重载（面板只在载入时拉一次）
+  var healing = false;
+  function heal() {
+    if (healing) return; healing = true;
+    setTimeout(function probe() {
+      fetch((window.API && window.API.API_BASE) + '/api/health', { cache: 'no-store' })
+        .then(function (r) { if (r.ok) location.reload(); else setTimeout(probe, 4000); })
+        .catch(function () { setTimeout(probe, 4000); });
+    }, 4000);
+  }
+
+  Promise.all([
+    A.apiGet('/api/map'),
+    A.apiGet('/api/trajectory?task_id=' + encodeURIComponent(A.TASK)),
+    A.apiGet('/api/events')
+  ]).then(function (rs) {
+    var mp = rs[0], traj = rs[1], ev = rs[2];
+    if (!(mp.ok && mp.data && traj.ok && traj.data && ev.ok)) { fail(); return; }
+
+    var pts = A.inspectionFeatures(mp.data).points;
+    var track = traj.data.track;
+    var events = ev.data || [];
+    var cov = A.coverage(pts, track);
+    var st = A.trackStats(track);
+    var kinds = {};
+    (mp.data.features || []).forEach(function (f) {
+      var k = (f.properties || {}).kind;
+      if (k) kinds[k] = (kinds[k] || 0) + 1;
+    });
+
+    A.setText('cc-task', traj.data.task_id || A.TASK);
+    A.setText('cc-agent', traj.data.agent_id || '--');
+    var sm = STATUS_META[traj.data.status] || { cn: traj.data.status || '--', color: '#94a3b8' };
+    A.setText('cc-status-txt', sm.cn);
+    var dotEl = document.getElementById('cc-status-dot');
+    if (dotEl) dotEl.style.background = sm.color;
+    A.setText('cc-dur', A.fmtDur(st.durationS));
+    A.setText('cc-nodes', String(cov.total));
+    A.setText('cc-cov', String(cov.pct));
+    A.setText('cc-events', String(events.length));
+    A.setText('cc-km', A.fmtNum(st.distM / 1000, 3));
+    A.setText('cc-b', String(kinds.building || 0));
+    A.setText('cc-r', String(kinds.road || 0));
+    A.setText('cc-p', String(kinds.inspection_point || 0));
+    var note = document.getElementById('cc-note');
+    if (note) {
+      note.textContent = '里程按 speed×Δt 积分：' + A.fmtNum(st.distM, 0) + ' m ≈ ' + A.fmtNum(st.distM / 1000, 3) + ' km（口径见详情页）';
+    }
+  }).catch(function () { fail(); });
+})();
+</script>
+{% endblock %}

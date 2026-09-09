@@ -121,3 +121,20 @@ section[id] {
   opacity: 1;
   transform: translateY(0);
 }
+
+/* ===== 后端在线状态点（auth.js 轮询 /api/health 驱动） ===== */
+.auth-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #9ca3af; /* 初始灰：还没探到 */
+  transition: background 0.3s ease;
+}
+.auth-dot.is-on {
+  background: #10b981; /* 绿：后端在线 */
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.5);
+}
+.auth-dot.is-off {
+  background: #ef4444; /* 红：后端离线 */
+}

@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block meta %}
+<title>巡检机器人运行详情 · AI 智能体时空智能平台</title>
+<meta name="description" content="巡检机器人（drone-01）在 task-001 中的任务概览、运行指标与轨迹回放。" />
+<link rel="stylesheet" href="https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+{% endblock %}
+
+{% block content %}
+<!-- ===== 顶部导航（同官网，当前页不高亮） ===== -->
+<header class="fixed inset-x-0 top-0 z-50 bg-background/85 backdrop-blur-md border-b border-border">
+  <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-8">
+    <a href="/" class="flex items-center gap-2 shrink-0">
+      <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+        <svg class="h-5 w-5 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" />
+          <path d="M4 6V4a2 2 0 0 1 2-2h2" />
+          <path d="M5 11.07 3.34 13a10 10 0 0 0 14.66 0" />
+          <path d="M20 18v2a2 2 0 0 1-2 2h-2" />
+          <path d="M13 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
+          <path d="M13 11V6" />
+        </svg>
+      </div>
+      <span class="text-base font-semibold">AI 智能体时空智能平台</span>
+    </a>
+
+    <nav class="hidden items-center gap-1 md:flex">
+      <a href="/" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">首页</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">产品能力</a>
+      <a href="/#solutions" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">解决方案</a>
+      <a href="/#solutions" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">时空智能</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">设备管理</a>
+      <a href="/#cases" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">案例中心</a>
+      <a href="/#clients" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">关于我们</a>
+      <a href="/map" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">地图可视化</a>
+    </nav>
+
+    <div class="hidden items-center gap-3 md:flex">
+      <span class="js-online inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground">
+        <span class="auth-dot"></span><span class="js-online-text">后端在线</span>
+      </span>
+      <div class="js-auth-guest flex items-center gap-2">
+        <a href="/login" class="rounded-md px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors">登录</a>
+        <a href="/login" class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity">免费试用</a>
+      </div>
+      <div class="js-auth-user flex items-center gap-3" style="display:none">
+        <a href="/map" class="js-auth-name rounded-md px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors">用户名</a>
+        <button type="button" data-auth-logout class="cursor-pointer rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">退出登录</button>
+      </div>
+    </div>
+
+    <button id="menu-btn" class="md:hidden p-2 text-foreground" aria-label="打开菜单">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
+      </svg>
+    </button>
+  </div>
+
+  <div id="mobile-menu" class="hidden md:hidden border-t border-border bg-background px-4 py-4">
+    <nav class="flex flex-col gap-1">
+      <a href="/" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">首页</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">产品能力</a>
+      <a href="/#solutions" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">解决方案</a>
+      <a href="/#solutions" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">时空智能</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">设备管理</a>
+      <a href="/#cases" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">案例中心</a>
+      <a href="/#clients" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">关于我们</a>
+      <a href="/map" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">地图可视化</a>
+    </nav>
+    <div class="js-online mt-4 inline-flex items-center gap-1.5 self-start rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">
+      <span class="auth-dot"></span><span class="js-online-text">后端在线</span>
+    </div>
+    <div class="js-auth-guest mt-3 flex flex-col gap-2">
+      <a href="/login" class="rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium">登录</a>
+      <a href="/login" class="rounded-md bg-primary px-4 py-2.5 text-center text-sm font-medium text-primary-foreground">免费试用</a>
+    </div>
+    <div class="js-auth-user mt-3 flex flex-col gap-2" style="display:none">
+      <a href="/map" class="js-auth-name rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium">用户名</a>
+      <button type="button" data-auth-logout class="cursor-pointer rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium text-muted-foreground hover:bg-secondary">退出登录</button>
+    </div>
+  </div>
+</header>
+
+<!-- ===== 正文 ===== -->
+<div class="blueprint-grid pointer-events-none fixed inset-0 opacity-60"></div>
+<main class="relative mx-auto max-w-7xl px-4 pt-24 pb-20 md:px-8 md:pt-28">
+
+  <!-- 面包屑 + 标题 -->
+  <nav class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+    <a href="/" class="text-muted-foreground hover:text-primary transition-colors">← 返回首页</a>
+    <span class="text-border">/</span>
+    <span class="font-medium">巡检机器人运行详情</span>
+    <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground">演示数据 · 单任务 task-001</span>
+  </nav>
+
+  <!-- 数据加载失败降级条：默认隐藏，JS 失败时切 display:block -->
+  <div id="degrade-box" class="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" style="display:none">
+    <span id="degrade-msg">数据加载失败</span>
+    <button type="button" onclick="location.reload()" class="rounded-lg border border-red-200 bg-card px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors">重试</button>
+  </div>
+
+  <div class="mt-6 flex flex-col gap-1">
+    <h1 class="text-2xl font-semibold md:text-3xl">巡检机器人 · 运行详情</h1>
+    <p class="text-sm text-muted-foreground">口径：以最近一次巡检任务（task-001）的在册执行智能体计，当前为 1 台。数据实时取自后端 <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs">/api/trajectory</span> 与 <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs">/api/map</span>。</p>
+  </div>
+
+  <div class="mt-8 grid gap-5 lg:grid-cols-2">
+    <!-- R1 任务概览 -->
+    <section class="tech-card rounded-2xl p-6 md:p-7">
+      <h2 class="flex items-center gap-2 text-base font-semibold">
+        <svg class="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="8" x="5" y="2" rx="2" /><path d="M2 17h20" /><path d="M6 17v-5" /><path d="M18 17v-5" /><circle cx="12" cy="12" r="0.5" /></svg>
+        任务概览
+      </h2>
+      <dl class="mt-5 space-y-3 text-sm">
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">任务 ID</dt>
+          <dd class="font-mono font-medium" id="r-task">--</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">执行智能体</dt>
+          <dd class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-0.5 font-mono text-xs text-secondary-foreground" id="r-agent-wrap"><span id="r-agent">--</span></span>
+          </dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">任务状态</dt>
+          <dd class="flex items-center gap-2 font-medium"><span id="r-status-dot" class="inline-block h-2 w-2 rounded-full" style="background:#9ca3af"></span><span id="r-status">--</span></dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">开始时间<span class="ml-1 text-xs">（本地）</span></dt>
+          <dd class="tabular-nums font-mono text-xs" id="r-start">--</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">结束时间<span class="ml-1 text-xs">（本地）</span></dt>
+          <dd class="tabular-nums font-mono text-xs" id="r-end">--</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4 border-t border-border pt-3">
+          <dt class="text-muted-foreground">任务时长</dt>
+          <dd class="font-medium text-primary" id="r-dur">--</dd>
+        </div>
+      </dl>
+    </section>
+
+    <!-- R2 运行指标 -->
+    <section class="tech-card rounded-2xl p-6 md:p-7">
+      <h2 class="flex items-center gap-2 text-base font-semibold">
+        <svg class="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 7V3a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-4" /><path d="M17 7l4 4-8 8-4 1 1-4z" /><path d="M20.5 10.5 17 7" /></svg>
+        运行指标
+      </h2>
+      <div class="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div class="rounded-xl bg-secondary/60 p-3">
+          <p class="text-xs text-muted-foreground">轨迹采样点</p>
+          <p class="mt-1 text-xl font-semibold tabular-nums text-primary"><span id="r-pts">--</span> <span class="text-xs font-normal text-muted-foreground">个</span></p>
+        </div>
+        <div class="rounded-xl bg-secondary/60 p-3">
+          <p class="text-xs text-muted-foreground">巡航里程</p>
+          <p class="mt-1 text-xl font-semibold tabular-nums text-primary"><span id="r-dist">--</span> <span class="text-xs font-normal text-muted-foreground">km</span></p>
+        </div>
+        <div class="rounded-xl bg-secondary/60 p-3">
+          <p class="text-xs text-muted-foreground">平均速度<span class="ml-0.5 text-[10px]">（含停驻）</span></p>
+          <p class="mt-1 text-xl font-semibold tabular-nums text-primary"><span id="r-avg">--</span> <span class="text-xs font-normal text-muted-foreground">m/s</span></p>
+        </div>
+        <div class="rounded-xl bg-secondary/60 p-3">
+          <p class="text-xs text-muted-foreground">最大速度</p>
+          <p class="mt-1 text-xl font-semibold tabular-nums text-primary"><span id="r-max">--</span> <span class="text-xs font-normal text-muted-foreground">m/s</span></p>
+        </div>
+        <div class="rounded-xl bg-secondary/60 p-3">
+          <p class="text-xs text-muted-foreground">巡航高度</p>
+          <p class="mt-1 text-xl font-semibold tabular-nums text-primary"><span id="r-alt">--</span> <span class="text-xs font-normal text-muted-foreground">m</span></p>
+        </div>
+      </div>
+      <p class="mt-4 text-xs leading-relaxed text-muted-foreground">里程按采样段「段首速度 × 段时长」积分（速度场数据），非经纬度直线距离。详情字段与 /map 地图页同源。</p>
+    </section>
+  </div>
+
+  <!-- R3 巡检轨迹图 -->
+  <section class="tech-card mt-5 rounded-2xl p-6 md:p-7">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="flex items-center gap-2 text-base font-semibold">
+        <svg class="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5a2 2 0 0 1 2-2h13a1 1 0 0 1 1 1v14" /><path d="M2 19h20" /><path d="M8 8h6" /><path d="M8 12h8" /><path d="M8 16h4" /></svg>
+        巡检轨迹
+      </h2>
+      <span class="rounded-full bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">蓝线 = 轨迹 · 绿/红点 = 起/终点 · 彩色圆点 = 巡检点</span>
+    </div>
+    <div id="map-robots" class="mt-4 w-full overflow-hidden rounded-xl border border-border bg-secondary/50" style="height:420px"></div>
+  </section>
+
+  <!-- R4 关联事件 -->
+  <section class="tech-card mt-5 rounded-2xl p-6 md:p-7">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="flex items-center gap-2 text-base font-semibold">
+        <svg class="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+        本任务关联事件
+      </h2>
+      <a href="/nodes" class="rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">事件明细见感知节点页 →</a>
+    </div>
+    <div class="mt-4 flex flex-wrap items-center gap-2" id="r-ev-chips">
+      <span class="text-sm text-muted-foreground">加载中…</span>
+    </div>
+  </section>
+
+</main>
+
+<!-- ===== 页脚 ===== -->
+<footer class="relative border-t border-border bg-background py-12">
+  <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 md:flex-row md:px-8">
+    <div class="flex items-center gap-2">
+      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+        <svg class="h-4 w-4 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" /><path d="M4 6V4a2 2 0 0 1 2-2h2" /><path d="M5 11.07 3.34 13a10 10 0 0 0 14.66 0" /><path d="M20 18v2a2 2 0 0 1-2 2h-2" /><path d="M13 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" /><path d="M13 11V6" /></svg>
+      </div>
+      <span class="text-sm font-semibold">AI 智能体时空智能平台</span>
+    </div>
+    <p class="text-xs text-muted-foreground">© 2026 AI 智能体时空智能平台 · 园区地面智能巡检</p>
+    <div class="flex items-center gap-5 text-sm text-muted-foreground">
+      <a href="/#capabilities" class="hover:text-primary transition-colors">产品能力</a>
+      <a href="/#cases" class="hover:text-primary transition-colors">案例中心</a>
+      <a href="/login" class="hover:text-primary transition-colors">登录</a>
+    </div>
+  </div>
+</footer>
+
+<script src="https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+  // bootcdn 失败时回退 unpkg（同 /map 页写法）
+  if (typeof L === 'undefined') {
+    document.write('<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />');
+    document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.min.js"><\/script>');
+  }
+</script>
+<script>
+(function () {
+  var A = window.API;
+  if (!A) return;
+  var degrade = document.getElementById('degrade-box');
+  var degradeMsg = document.getElementById('degrade-msg');
+
+  function fail(msg) {
+    if (degrade) { degradeMsg.textContent = msg || '数据加载失败'; degrade.style.display = 'flex'; }
+    heal();
+  }
+  function ok() { if (degrade) degrade.style.display = 'none'; }
+
+  // 自愈：数据请求失败后每 4s 探一次后端健康，恢复即整页重载（数据页只在载入时拉一次）
+  var healing = false;
+  function heal() {
+    if (healing) return; healing = true;
+    setTimeout(function probe() {
+      fetch((window.API && window.API.API_BASE) + '/api/health', { cache: 'no-store' })
+        .then(function (r) { if (r.ok) location.reload(); else setTimeout(probe, 4000); })
+        .catch(function () { setTimeout(probe, 4000); });
+    }, 4000);
+  }
+
+  Promise.all([
+    A.apiGet('/api/trajectory?task_id=' + encodeURIComponent(A.TASK)),
+    A.apiGet('/api/map'),
+    A.apiGet('/api/events')
+  ]).then(function (rs) {
+    var traj = rs[0], mp = rs[1], ev = rs[2];
+    if (!(traj.ok && traj.data && mp.ok && mp.data && ev.ok)) {
+      var first = (!traj.ok && traj) || (!mp.ok && mp) || ev;
+      fail(first.message);
+      return;
+    }
+    ok();
+    var t = traj.data;
+    var st = A.trackStats(t.track);
+    var feats = A.inspectionFeatures(mp.data);
+    var evAll = (ev.data || []).slice().sort(function (a, b) { return Date.parse(a.timestamp) - Date.parse(b.timestamp); });
+    var agg = A.aggEvents(evAll);
+
+    // R1 任务概览
+    A.setText('r-task', t.task_id);
+    A.setText('r-agent', t.agent_id);
+    A.setText('r-status', A.TASK_STATUS_CN[t.status] || t.status);
+    A.setText('r-status-dot', '');
+    document.getElementById('r-status-dot').style.background = t.status === 'finished' ? '#16a34a' : '#2563eb';
+    A.setText('r-start', t.track.length ? A.fmtDateTime(t.track[0].timestamp) : '--');
+    A.setText('r-end', t.track.length ? A.fmtDateTime(t.track[t.track.length - 1].timestamp) : '--');
+    A.setText('r-dur', A.fmtDur(st.durationS));
+
+    // R2 运行指标
+    A.setText('r-pts', String(st.count));
+    A.setText('r-dist', A.fmtNum(st.distM / 1000, 2));
+    A.setText('r-avg', String(st.avgMs));
+    A.setText('r-max', A.fmtNum(st.maxMs, 1));
+    A.setText('r-alt', String(st.altM));
+
+    // R3 轨迹地图（巡检点 + 轨迹线 + 起终点）
+    A.buildMap('map-robots', { features: feats, track: t.track });
+
+    // R4 关联事件 chips（仅列非零类型）
+    var box = document.getElementById('r-ev-chips');
+    while (box.firstChild) box.removeChild(box.firstChild);
+    var total = document.createElement('span');
+    total.className = 'rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary';
+    total.textContent = '共 ' + agg.total + ' 起';
+    box.appendChild(total);
+    agg.types.forEach(function (ty) {
+      if (!ty.count) return;
+      var chip = document.createElement('span');
+      chip.className = 'inline-flex items-center gap-1.5 rounded-full bg-secondary px-3 py-1 text-sm text-muted-foreground';
+      var dot = document.createElement('span');
+      dot.className = 'inline-block rounded-full';
+      dot.style.cssText = 'width:8px;height:8px;background:' + ty.dot;
+      chip.appendChild(dot);
+      chip.appendChild(document.createTextNode(ty.cn + ' ' + ty.count + ' 起'));
+      box.appendChild(chip);
+    });
+    if (agg.total > 0) {
+      var pend = 0;
+      agg.statuses.forEach(function (s) { if (s.status === 'pending') pend = s.count; });
+      if (pend === agg.total) {
+        var stChip = document.createElement('span');
+        stChip.className = 'text-xs text-muted-foreground';
+        stChip.textContent = '全部为' + A.statusCN('pending') + '（演示数据集，处置/确认流程为空态）';
+        box.appendChild(stChip);
+      }
+    }
+  }).catch(function () { fail('无法连接后端服务'); });
+})();
+</script>
+{% endblock %}
