@@ -181,3 +181,22 @@ Body（`application/json`）：
 首次启动自动从 `data/` 灌样例，接口返回结构与 JSON 数据源一致）。
 连不上库自动回退 JSON，接口签名不变。空间查询演示：`nearby_events(lng, lat, radius_m)`
 （`ST_DistanceSphere` 附近事件），供后续「附近巡检点 / 轨迹相交」类接口复用。
+### Auth（新增，未冻结；改动仍需全组同步）— E 模块接入，账号存 JSON
+
+统一信封与错误码同上。会话用 `Authorization: Bearer <token>` 请求头。
+token 由后端内存生成（`secrets`，256bit，TTL 24h）——**仅支持单进程
+uvicorn（run.bat 现状），后端重启后全部失效，前端会收到 40101 自动回到未登录态。**
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| POST | `/api/auth/register` | 注册。body `{username, password, email?}`；成功即发会话（自动登录），返回 `{token, user}`；用户名/邮箱重复 → `40901`/409 |
+| POST | `/api/auth/login` | 登录。body `{account, password}`，account 兼容 username（精确）或 email（不区分大小写）；失败统一 `40101`/401「用户名或邮箱 / 密码错误」 |
+| GET | `/api/auth/me` | 当前用户（脱敏：username/email/created_at，无任何密码字段）；未登录/过期 → `40101`/401 |
+| POST | `/api/auth/logout` | 注销，幂等（token 无效也返回 ok） |
+
+注册约束：username `^[A-Za-z0-9_]{3,20}$`；password 6–64 位；
+email 选填（前端为空时不传该键）。密码库内存 `PBKDF2-SHA256`（随机盐 + 20 万次迭代），
+`data/users.json`（已 gitignore）只存 salt/hash，绝不存明文。
+
+新错误码：`40101`（未登录/凭证错，HTTP 401）、`40901`（用户名或邮箱已注册，HTTP 409）。
+

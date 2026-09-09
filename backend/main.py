@@ -14,6 +14,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
 from .routers import router as rest_router
+from .routers_auth import router as auth_router
 from .stream import router as stream_router
 
 app = FastAPI(title="厂区/园区地面巡检 · 时空智能平台 API", version="0.2.0")
@@ -27,6 +28,7 @@ app.add_middleware(
 )
 
 app.include_router(rest_router)
+app.include_router(auth_router)
 app.include_router(stream_router)
 
 

@@ -31,5 +31,8 @@ ENV/
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
+# 本地账号表（auth 模块运行时生成，含密码哈希，不进版本库）
+data/users.json
+data/users.json.tmp
 # Claude Code 本地权限配置（个人、含机器相关信息）
 .claude/settings.local.json

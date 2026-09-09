@@ -123,3 +123,31 @@ class Report(BaseModel):
     summary: ReportSummary
     events: list[Event] = []
     conclusion: str = ""
+
+
+# ---------------------------------------------------------------------------
+# auth（新增，未冻结；契约变更需全组同步，见 docs/api.md Auth 节）
+# ---------------------------------------------------------------------------
+
+
+class RegisterRequest(BaseModel):
+    """注册入参。email 为选填：前端传空就省略该键（空串会 422）。"""
+
+    username: str = Field(pattern=r"^[A-Za-z0-9_]{3,20}$")
+    password: str = Field(min_length=6, max_length=64)
+    email: str | None = Field(default=None, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+
+
+class LoginRequest(BaseModel):
+    """登录入参：account 兼容 username 或 email。"""
+
+    account: str = Field(min_length=1, max_length=64)
+    password: str = Field(min_length=1, max_length=64)
+
+
+class UserOut(BaseModel):
+    """登录用户脱敏信息（后端绝不外泄 salt/pwd_hash）。"""
+
+    username: str
+    email: str | None = None
+    created_at: str = ""

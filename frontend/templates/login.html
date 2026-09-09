@@ -214,20 +214,33 @@
     });
   });
 
-  // 登录提交（纯前端演示）
-  document.getElementById('login-submit').addEventListener('submit', (e) => {
+  // 登录提交（接后端 POST /api/auth/login，auth.js 提供 Auth.*）
+  document.getElementById('login-submit').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (e.target._busy) return; // 防双提交
     const account = document.getElementById('account').value.trim();
     const password = document.getElementById('password').value;
     if (!account) { showMsg('请输入账号', 'error'); return; }
     if (!password) { showMsg('请输入密码', 'error'); return; }
-    showMsg('登录成功，即将跳转首页…', 'success');
-    setTimeout(() => { window.location.href = '/'; }, 1200);
+
+    const btn = e.target.querySelector('button[type="submit"]');
+    e.target._busy = true; btn.disabled = true; btn.textContent = '登录中…';
+    const r = await Auth.apiLogin(account, password);
+    e.target._busy = false; btn.disabled = false; btn.textContent = '登录';
+
+    if (r.ok) {
+      Auth.saveSession(r.data.token, r.data.user, document.getElementById('remember').checked);
+      showMsg('登录成功，正在进入地图…', 'success');
+      setTimeout(() => { location.replace('/map'); }, 800);
+    } else {
+      showMsg(r.netError ? '无法连接后端服务，请确认后端已启动（127.0.0.1:8000）' : (r.message || '登录失败，请重试'), 'error');
+    }
   });
 
-  // 注册提交（纯前端演示）
-  document.getElementById('register-submit').addEventListener('submit', (e) => {
+  // 注册提交（接后端 POST /api/auth/register；成功即自动登录跳地图）
+  document.getElementById('register-submit').addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (e.target._busy) return;
     const username = document.getElementById('reg-username').value.trim();
     const email = document.getElementById('reg-email').value.trim();
     const password = document.getElementById('reg-password').value;
@@ -235,13 +248,25 @@
     const agree = document.getElementById('agree').checked;
 
     if (!/^[A-Za-z0-9_]{3,20}$/.test(username)) { showMsg('用户名需为 3-20 位字母、数字或下划线', 'error'); return; }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('请输入合法的邮箱地址', 'error'); return; }
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showMsg('邮箱格式不正确（选填，也可不填）', 'error'); return; }
     if (password.length < 6) { showMsg('密码长度不得少于 6 字符', 'error'); return; }
     if (password !== confirm) { showMsg('两次输入的密码不一致', 'error'); return; }
     if (!agree) { showMsg('请先阅读并同意用户协议与隐私政策', 'error'); return; }
 
-    showMsg('注册成功，即将跳转首页…', 'success');
-    setTimeout(() => { window.location.href = '/'; }, 1200);
+    const btn = e.target.querySelector('button[type="submit"]');
+    e.target._busy = true; btn.disabled = true; btn.textContent = '注册中…';
+    const payload = { username: username, password: password };
+    if (email) payload.email = email; // 后端 email 选填：空就不传（传空串会 422）
+    const r = await Auth.apiRegister(payload);
+    e.target._busy = false; btn.disabled = false; btn.textContent = '注册';
+
+    if (r.ok) {
+      Auth.saveSession(r.data.token, r.data.user, false); // 注册默认不记住
+      showMsg('注册成功，已自动登录，正在进入地图…', 'success');
+      setTimeout(() => { location.replace('/map'); }, 800);
+    } else {
+      showMsg(r.netError ? '无法连接后端服务，请确认后端已启动（127.0.0.1:8000）' : (r.message || '注册失败，请重试'), 'error');
+    }
   });
 </script>
 {% endblock %}
