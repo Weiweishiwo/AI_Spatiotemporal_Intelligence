@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     mysql_db: str = "inspection"
 
     # ---- DeepSeek（智能体 F 的配置，D 骨架阶段只占位、不调用）----
-    deepseek_api_key: str = ""
+    agent_deepseek_api_key: str = ""
     deepseek_base_url: str = "https://api.deepseek.com/v1"
     deepseek_model: str = "deepseek-chat"
 
