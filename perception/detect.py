@@ -5,7 +5,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 IMAGE_DIR = BASE_DIR / "data" / "images"
 MODEL_PATH = Path(__file__).resolve().parent.parent / "yolov8n.pt"
 model=YOLO(str(MODEL_PATH))
-
+#2026/9/9
 def run_detect(image_path: str) -> dict:
     """
         目的:真是的YOLOv8推理,输出符合docs/data-schema.md §4的检测结果
