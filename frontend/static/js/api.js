@@ -49,8 +49,11 @@
     smoke: '烟雾', fire: '明火', no_helmet: '未戴安全帽',
     intrusion: '闯入', equipment_abnormal: '设备异常'
   };
+  // fire / no_helmet 两色与 /map 页 TYPE_META 同步压深（#dc2626→#991b1b、#7c3aed→#5b21b6）：
+  // 地图撒点场景按 all-pairs 校验，原配色正常视觉 ΔE 8.7（低于 15 硬门槛）、蓝↔紫在
+  // 红绿色盲下 ΔE 仅 0.4。改后 15.4 / 11.1 全部通过。改这里必须同步改 /map 页。
   var TYPE_DOT = {
-    smoke: '#ea580c', fire: '#dc2626', no_helmet: '#7c3aed',
+    smoke: '#ea580c', fire: '#991b1b', no_helmet: '#5b21b6',
     intrusion: '#db2777', equipment_abnormal: '#2563eb'
   };
 

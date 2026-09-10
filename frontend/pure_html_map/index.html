@@ -103,6 +103,66 @@
     #evtList .evtMain b { font-size: 12.5px; }
     #evtList .badge { font-size: 11px; color: #fff; padding: 0 6px; border-radius: 8px; margin-left: 2px; }
     #evtList .evtSub { color: #64748b; font-size: 11px; margin-top: 3px; }
+
+    /* 左上角：全国 / 园区 视图切换
+       left 要避开 Leaflet 自带的缩放按钮（贴着地图左上角，约 40px 宽） */
+    #viewToggle {
+      position: absolute; top: 12px; left: 292px; z-index: 500;
+      display: flex; background: rgba(255,255,255,.95);
+      border-radius: 8px; padding: 4px; gap: 4px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.3);
+    }
+    #viewToggle button {
+      border: none; background: transparent; cursor: pointer; font-family: inherit;
+      font-size: 13px; padding: 5px 14px; border-radius: 6px; color: #475569;
+    }
+    #viewToggle button:hover { background: #f1f5f9; }
+    #viewToggle button.on { background: #1e293b; color: #fff; }
+
+    /* 全国视图：不要瓦片底图，用浅色底衬托省界板块 */
+    #map.cn-mode { background: #eef2f7; }
+    /* 地图上的站点名（描白边，压在省界上也看得清） */
+    .site-label {
+      font-size: 11px; font-weight: 600; color: #0f172a; white-space: nowrap;
+      text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 0 3px #fff;
+    }
+    /* 站点名用 Leaflet tooltip 承载，去掉 tooltip 自带的气泡样式 */
+    .leaflet-tooltip.site-label {
+      background: none; border: none; box-shadow: none; padding: 0;
+    }
+    .leaflet-tooltip.site-label::before { display: none; }
+
+    /* 右下角：全国态势面板（只在园区视图隐藏） */
+    #cnPanel {
+      position: absolute; right: 12px; bottom: 12px; z-index: 480;
+      width: 268px; max-height: 58%; display: none; flex-direction: column;
+      background: rgba(255,255,255,.96); border-radius: 8px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.25); font-size: 13px;
+    }
+    #cnPanel .head { padding: 8px 12px; font-weight: bold; border-bottom: 1px solid #e2e8f0; }
+    #cnPanel .head span { color: #475569; font-weight: normal; margin-left: 6px; }
+    #cnPanel .body { padding: 8px 12px 12px; overflow-y: auto; }
+    #cnPanel .note {
+      margin: 0 12px 10px; padding: 6px 8px; border-radius: 6px;
+      background: #fef3c7; color: #92400e; font-size: 11px; line-height: 1.5;
+    }
+    .cnStats { display: flex; gap: 6px; margin-bottom: 10px; }
+    .cnStats div { flex: 1; text-align: center; background: #f1f5f9; border-radius: 6px; padding: 6px 2px; }
+    .cnStats b { display: block; font-size: 17px; color: #0f172a; }
+    .cnStats span { font-size: 11px; color: #64748b; }
+    .cnCap { font-size: 11px; color: #64748b; margin: 0 0 5px; }
+    /* 类型图例：颜色 + 图标 + 名字，识别不单靠颜色 */
+    .cnLegend { display: flex; flex-wrap: wrap; gap: 5px 10px; font-size: 11.5px; color: #334155; }
+    .cnLegend span { display: flex; align-items: center; gap: 4px; }
+    .cnLegend i {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+      border: 1.5px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.15);
+    }
+    /* 左侧站点清单：右侧问题数徽章 */
+    #ptList .num {
+      margin-left: auto; font-size: 11px; color: #fff;
+      padding: 1px 7px; border-radius: 8px; flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -110,11 +170,18 @@
     <div style="margin-bottom:10px;font-size:12px">
       <a href="/" style="color:#7dd3fc">← 返回官网首页</a>
     </div>
-    <h2>巡检点清单</h2>
+    <h2 id="sideTitle">巡检点清单</h2>
     <div class="sub">点一下，地图飞过去</div>
     <ul id="ptList"></ul>
   </aside>
   <div id="map"></div>
+
+  <!-- 左上角：全国态势 / 园区详情 切换 -->
+  <div id="viewToggle">
+    <button id="btnViewChina" type="button" class="on">全国态势</button>
+    <button id="btnViewCampus" type="button">园区详情</button>
+  </div>
+
   <div id="status">数据：加载中…（自动连接后端 127.0.0.1:8000）</div>
 
   <!-- 右上角：轨迹任务选择 + 回放控制条 -->
@@ -166,12 +233,31 @@
     <ul id="evtList"></ul>
   </div>
 
+  <!-- 右下角：全国态势面板（全国视图显示，园区视图隐藏） -->
+  <div id="cnPanel">
+    <div class="head">全国问题分布<span id="cnCount"></span></div>
+    <div class="body">
+      <div class="cnStats">
+        <div><b id="cnSites">0</b><span>站点</span></div>
+        <div><b id="cnProblems">0</b><span>问题点</span></div>
+        <div><b id="cnPending">0</b><span>待处理</span></div>
+      </div>
+      <p class="cnCap">按类型</p>
+      <div class="cnLegend" id="cnLegend"></div>
+    </div>
+    <div class="note" id="cnNote">演示数据</div>
+  </div>
+
   <script src="https://cdn.bootcdn.net/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
   <script>
     if (typeof L === 'undefined') {
       document.write('<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.min.js"><\/script>');
     }
   </script>
+  <!-- 中国省界轮廓（普通 GeoJSON）。由 Flask 从 /static/geo/ 提供；
+       直接双击本文件（file://）时取不到，全国视图会退化成只有撒点的空底，
+       左下角有提示——走 http://127.0.0.1:5000/map 打开即正常。 -->
+  <script src="/static/geo/china-provinces.js"></script>
   <script>
     // ============================================================
     // ① 数据：先按后端接口的返回格式，把样例数据写死在这里
@@ -260,10 +346,18 @@
     // ============================================================
     var map = L.map('map');
     // 底图：高德路网（国内可直连、免 key；之前用 OSM 在国内经常加载不出）
-    L.tileLayer('https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
+    // 全国视图只用省界板块、不要瓦片底图，所以这里留个引用，切换时要摘掉/装回
+    var tileLayer = L.tileLayer('https://webrd01.is.autonavi.com/appmaptile?lang=zh_cn&size=1&scale=1&style=8&x={x}&y={y}&z={z}', {
       maxZoom: 19,
       attribution: '&copy; 高德地图'
     }).addTo(map);
+
+    // 园区视图的"底图块"单独装一层：切到全国视图时整层摘掉
+    var campusLayer = L.layerGroup().addTo(map);
+
+    // 当前视图：'campus' 园区 / 'china' 全国
+    // （异步回调里要判断它，否则后端数据晚到会把全国视图又拽回园区取景）
+    var viewMode = 'campus';
 
     // ============================================================
     // ③ 把园区底图画上地图：真数据问后端 /api/map 要
@@ -295,13 +389,13 @@
           // 多边形的第一个坐标环 = 楼的外墙一圈
           var ring = g.coordinates[0].map(function (c) { return [c[1], c[0]]; }); // [lng,lat]→[lat,lng]
           L.polygon(ring, { color: '#64748b', weight: 2, fillColor: '#cbd5e1', fillOpacity: 0.7 })
-            .addTo(map).bindPopup('<b>' + p.name + '</b>');
+            .addTo(campusLayer).bindPopup('<b>' + p.name + '</b>');
           ring.forEach(function (c) { allLatLngs.push(c); });
 
         } else if (p.kind === 'road') {
           var line = g.coordinates.map(function (c) { return [c[1], c[0]]; });
           L.polyline(line, { color: '#f59e0b', weight: 4, opacity: 0.8 })
-            .addTo(map).bindPopup('<b>' + p.name + '</b>');
+            .addTo(campusLayer).bindPopup('<b>' + p.name + '</b>');
           line.forEach(function (c) { allLatLngs.push(c); });
 
         } else if (p.kind === 'inspection_point') {
@@ -310,7 +404,7 @@
           var m = L.circleMarker([g.coordinates[1], g.coordinates[0]], {
             radius: 9, color: '#fff', weight: 2,
             fillColor: color, fillOpacity: 0.95
-          }).addTo(map).bindPopup(
+          }).addTo(campusLayer).bindPopup(
             '<b>' + p.id + ' ' + p.name + '</b><br>优先级：' + p.priority
           );
           pointMarkers[p.id] = m;
@@ -328,11 +422,16 @@
           map.flyTo(m.getLatLng(), 16);   // 16 = 飞过去后的放大级别
           m.openPopup();
         };
-        document.getElementById('ptList').appendChild(li);
+        if (viewMode === 'campus') {   // 全国视图下左栏是站点清单，别混进巡检点
+          document.getElementById('ptList').appendChild(li);
+        }
       }
 
       // ⑤ 让地图根据园区范围自动取景（不用手算中心点）
-      map.fitBounds(L.latLngBounds(allLatLngs), { padding: [50, 50] });
+      //    全国视图下不抢镜头：用户可能是切走之后后端数据才到
+      if (viewMode === 'campus') {
+        map.fitBounds(L.latLngBounds(allLatLngs), { padding: [50, 50] });
+      }
     }
 
     // 页面启动：问后端要园区地图；连不上就回退内嵌样例兜底
@@ -405,7 +504,10 @@
         }).addTo(trackLayer);
 
         // 取景到这条轨迹，右上角信息栏同步显示任务信息
-        map.fitBounds(trackLine.getBounds(), { padding: [60, 60] });
+        // （全国视图下不抢镜头，信息栏照常更新）
+        if (viewMode === 'campus') {
+          map.fitBounds(trackLine.getBounds(), { padding: [60, 60] });
+        }
         info.textContent = CUR.task_id + ' · ' + CUR.agent_id + ' · 共 ' + t.length + ' 个点 · ' + CUR.status;
         liveEl.textContent = '点「▶ 播放」开始回放';
       }
@@ -557,10 +659,13 @@
     //    每个事件在地图上是一个"图标圈"，点列表/图标弹出详情
     // ============================================================
     // 每种类型：图标、颜色、中文名
+    // 颜色经色觉校验：地图撒点场景任意两类都可能相邻，需 all-pairs 通过。
+    // 明火/未戴安全帽两色比初版压深，把最差正常视觉 ΔE 从 8.7 提到 15.4、
+    // 红绿色盲 ΔE 从 0.4 提到 11.1（蓝↔紫原本几乎不可分）。语义不变。
     var TYPE_META = {
       smoke:               { icon: '💨', color: '#ea580c', cn: '烟雾' },
-      fire:                { icon: '🔥', color: '#dc2626', cn: '明火' },
-      no_helmet:           { icon: '⛑️', color: '#7c3aed', cn: '未戴安全帽' },
+      fire:                { icon: '🔥', color: '#991b1b', cn: '明火' },
+      no_helmet:           { icon: '⛑️', color: '#5b21b6', cn: '未戴安全帽' },
       intrusion:           { icon: '🚧', color: '#db2777', cn: '闯入' },
       equipment_abnormal:  { icon: '⚠️', color: '#2563eb', cn: '设备异常' },
       _:                   { icon: '❓', color: '#64748b', cn: '未知' }
@@ -649,6 +754,293 @@
     document.getElementById('evtTypeFilter').onchange = drawEvents;
     document.getElementById('evtStatusFilter').onchange = drawEvents;
     drawEvents();   // 页面一打开就显示事件
+
+    // ============================================================
+    // ⑨ 全国态势：中国省界"一个大板块" + 代表"有问题的地方"的小点点
+    //    和园区视图共用同一个 Leaflet 实例，靠 ⑩ setView 来回切。
+    //
+    //    ★数据说明★：后端没有多站点接口（契约冻结，不许改），
+    //    所以除「北京园区」外的站点都是前端演示数据。
+    //    北京园区的问题点走 /api/events 真数据。右下角黄条如实标注了两者。
+    // ============================================================
+
+    // 站点：北京那个是真的（与 /api/map 的坐标范围一致），其余为演示
+    var SITES = [
+      { id: 'SITE-BJ', name: '北京园区', lng: 116.15, lat: 39.17, real: true  },
+      { id: 'SITE-SY', name: '沈阳园区', lng: 123.43, lat: 41.80, real: false },
+      { id: 'SITE-SH', name: '上海园区', lng: 121.47, lat: 31.23, real: false },
+      { id: 'SITE-WH', name: '武汉园区', lng: 114.30, lat: 30.59, real: false },
+      { id: 'SITE-GZ', name: '广州园区', lng: 113.26, lat: 23.13, real: false },
+      { id: 'SITE-CD', name: '成都园区', lng: 104.07, lat: 30.67, real: false },
+      { id: 'SITE-XA', name: '西安园区', lng: 108.94, lat: 34.34, real: false }
+    ];
+
+    // 各站点的问题点（演示）：[类型, 状态, 置信度, 位置名]
+    var SITE_PROBLEMS = {
+      'SITE-SY': [['equipment_abnormal', 'pending', 0.68, '2号厂房配电柜'],
+                  ['no_helmet', 'resolved', 0.83, '露天堆场']],
+      'SITE-SH': [['fire', 'pending', 0.94, '3号仓库'],
+                  ['no_helmet', 'confirmed', 0.86, '装卸月台'],
+                  ['equipment_abnormal', 'pending', 0.71, '变电所']],
+      'SITE-WH': [['smoke', 'pending', 0.77, '锅炉房'],
+                  ['intrusion', 'false_alarm', 0.58, '东侧围墙']],
+      'SITE-GZ': [['fire', 'confirmed', 0.91, '危化品库'],
+                  ['smoke', 'pending', 0.74, '喷涂车间'],
+                  ['no_helmet', 'pending', 0.81, '钢结构工地'],
+                  ['intrusion', 'resolved', 0.66, '北门']],
+      'SITE-CD': [['equipment_abnormal', 'pending', 0.79, '空压机房'],
+                  ['smoke', 'resolved', 0.63, '食堂后厨']],
+      'SITE-XA': [['intrusion', 'pending', 0.72, '西侧料场'],
+                  ['equipment_abnormal', 'confirmed', 0.85, '水泵房']]
+    };
+
+    // 站点周围摊开问题点：黄金角螺旋，散得开又固定不变（不用随机数，刷新前后一致）
+    // 半径按"全国视图"定：zoom 4 时 1° 约 11px，取 0.55° 让同站点的小点点不叠成一坨
+    function spread(i) {
+      var ang = i * 2.399963;                     // 黄金角（弧度）
+      var rad = 0.55 * Math.sqrt(i + 1);          // 越靠后离站点越远
+      return [rad * Math.cos(ang), rad * Math.sin(ang)];
+    }
+
+    var cnProblems = [];      // 全国问题点（北京真数据 + 其余演示）
+    // 北京那批到底是不是后端真数据？后端没起时用的是内嵌样例，
+    // 必须在界面上如实区分——不能把兜底样例说成"真实数据"
+    var bjIsReal = false;
+
+    // 全国问题点 = 北京(后端真数据) + 其余站点(演示数据)
+    // 北京那 8 条坐标挤在同一个园区里，全国尺度上会叠成 1 个点，所以同样按螺旋摊开
+    function buildNationProblems(beijingEvents) {
+      var out = [], bj = SITES[0];
+      beijingEvents.forEach(function (e, i) {
+        var o = spread(i);
+        out.push({
+          site: bj, type: e.type, status: e.status, confidence: e.confidence,
+          where: e.event_id, real: true,
+          lng: bj.lng + o[0], lat: bj.lat + o[1]
+        });
+      });
+      SITES.slice(1).forEach(function (s) {
+        (SITE_PROBLEMS[s.id] || []).forEach(function (r, i) {
+          var o = spread(i);
+          out.push({
+            site: s, type: r[0], status: r[1], confidence: r[2], where: r[3], real: false,
+            lng: s.lng + o[0], lat: s.lat + o[1]
+          });
+        });
+      });
+      return out;
+    }
+
+    // ---- 全国视图的三个图层组（不立即上地图，由 setView 决定）----
+    var chinaLayer = L.layerGroup();   // 省界板块
+    var siteLayer  = L.layerGroup();   // 站点
+    var probLayer  = L.layerGroup();   // 问题点小圆点
+
+    // 国土范围：优先按省界数据算，取不到就用大致范围兜底
+    var CHINA_BOUNDS = (typeof window.CHINA_GEO === 'undefined')
+      ? L.latLngBounds([[18, 73], [54, 136]])
+      : L.geoJSON(window.CHINA_GEO).getBounds();
+
+    // 省界画成"一个大板块"：白描边分省，整块浅灰蓝填充。
+    // 南海诸岛（九段线）单独一档配色——它和普通省界同色的话在这个缩放级别基本看不见
+    var SEA_NAME = '南海诸岛';
+    function chinaStyle(name) {
+      return name === SEA_NAME
+        ? { color: '#64748b', weight: 1.5, fillColor: '#94a3b8', fillOpacity: 1 }
+        : { color: '#ffffff', weight: 1, fillColor: '#cbd5e1', fillOpacity: 1 };
+    }
+    if (typeof window.CHINA_GEO !== 'undefined') {
+      L.geoJSON(window.CHINA_GEO, {
+        style: function (f) { return chinaStyle(f.properties.name); },
+        onEachFeature: function (f, layer) {
+          var name = f.properties.name;
+          layer.bindPopup('<b>' + name + '</b>');
+          layer.on('mouseover', function () { this.setStyle({ fillColor: '#475569' }); });
+          layer.on('mouseout', function () { this.setStyle(chinaStyle(name)); });
+        }
+      }).addTo(chinaLayer);
+    }
+
+    // 站点是否还有待处理问题 → 决定左栏徽章颜色（配数字，不靠颜色单独表意）
+    function pendingOf(siteId) {
+      return cnProblems.filter(function (p) {
+        return p.site.id === siteId && p.status === 'pending';
+      }).length;
+    }
+
+    // 左栏：全国视图下换成站点清单（园区视图的巡检点清单在 drawBaseMap 里管）
+    function renderSiteList() {
+      var ul = document.getElementById('ptList');
+      ul.innerHTML = '';
+      SITES.forEach(function (s) {
+        var n = cnProblems.filter(function (p) { return p.site.id === s.id; }).length;
+        var pend = pendingOf(s.id);
+        var bg = pend ? '#b45309' : '#64748b';
+        var li = document.createElement('li');
+        li.innerHTML = '<span class="dot" style="background:' + bg + '"></span>' +
+          s.name + '<span class="num" style="background:' + bg + '">' + n + '</span>';
+        li.title = s.name + '：共 ' + n + ' 个问题点，其中待处理 ' + pend + ' 个';
+        li.onclick = function () { map.flyTo([s.lat, s.lng], 9); };
+        ul.appendChild(li);
+      });
+    }
+
+    // 把站点和问题点画上地图，并刷新右下角面板（数据到位后调用）
+    function renderChina() {
+      siteLayer.clearLayers();
+      probLayer.clearLayers();
+
+      // 站点：空心圈 + 常驻名字
+      SITES.forEach(function (s) {
+        var n = cnProblems.filter(function (p) { return p.site.id === s.id; }).length;
+        var m = L.circleMarker([s.lat, s.lng], {
+          radius: 5, color: '#1e293b', weight: 2, fillColor: '#ffffff', fillOpacity: 1
+        }).addTo(siteLayer);
+        m.bindTooltip(s.name, {
+          permanent: true, direction: 'right', className: 'site-label', offset: [7, 0]
+        });
+        m.bindPopup(
+          '<b>' + s.name + '</b><br>问题点：' + n + ' 个（待处理 ' + pendingOf(s.id) + '）<br>' +
+          '数据：' + (s.real
+            ? (bjIsReal ? '后端 /api/events 真实数据' : '内嵌样例（后端未连接）')
+            : '前端演示数据') +
+          (s.real ? '<br><a href="#" id="cnDrill">查看园区详情 →</a>' : '')
+        );
+      });
+
+      // 问题点：小圆点，颜色按类型，配图标与文字（不靠颜色单独识别）
+      cnProblems.forEach(function (p) {
+        var meta = TYPE_META[p.type] || TYPE_META._;
+        L.circleMarker([p.lat, p.lng], {
+          radius: 6, color: '#ffffff', weight: 1.5, fillColor: meta.color, fillOpacity: 0.95
+        }).addTo(probLayer).bindPopup(
+          '<b>' + meta.icon + ' ' + meta.cn + '</b>　' +
+          (STATUS_CN[p.status] || p.status) + '<br>' +
+          '站点：' + p.site.name + '<br>' +
+          (p.real ? '事件：' : '位置：') + p.where + '<br>' +
+          '置信度：' + Math.round(p.confidence * 100) + '%<br>' +
+          '数据：' + (p.real ? (bjIsReal ? '后端真实数据' : '内嵌样例') : '演示数据')
+        );
+      });
+
+      // 右下角面板
+      var pend = cnProblems.filter(function (p) { return p.status === 'pending'; }).length;
+      document.getElementById('cnSites').textContent = SITES.length;
+      document.getElementById('cnProblems').textContent = cnProblems.length;
+      document.getElementById('cnPending').textContent = pend;
+      document.getElementById('cnCount').textContent = cnProblems.length + ' 个';
+
+      var counts = {};
+      cnProblems.forEach(function (p) { counts[p.type] = (counts[p.type] || 0) + 1; });
+      var legend = document.getElementById('cnLegend');
+      legend.innerHTML = '';
+      Object.keys(TYPE_META).forEach(function (k) {
+        if (k === '_' || !counts[k]) return;
+        var meta = TYPE_META[k], el = document.createElement('span');
+        el.innerHTML = '<i style="background:' + meta.color + '"></i>' +
+          meta.icon + ' ' + meta.cn + ' ' + counts[k];
+        legend.appendChild(el);
+      });
+
+      var realN = cnProblems.filter(function (p) { return p.real; }).length;
+      document.getElementById('cnNote').textContent = bjIsReal
+        ? '北京园区 ' + realN + ' 条为后端 /api/events 真实数据；其余 ' +
+          (cnProblems.length - realN) + ' 条为演示数据（后端无多站点接口，如实标注，不冒充真实数据）。'
+        : '后端未连接：北京园区那 ' + realN + ' 条是内嵌样例（非真实数据），其余 ' +
+          (cnProblems.length - realN) + ' 条同样是演示数据。先启动 run.bat 再刷新本页。';
+
+      if (viewMode === 'china') renderSiteList();
+    }
+
+    // 问后端要北京的事件；连不上退回内嵌样例（和园区视图一致）
+    function loadChinaData() {
+      apiGet('/api/events').then(function (res) {
+        if (res.code === 0 && res.data) {
+          bjIsReal = true;
+          cnProblems = buildNationProblems(res.data);
+        } else {
+          backendDown();
+          bjIsReal = false;
+          cnProblems = buildNationProblems(FAKE_EVENTS.data);
+        }
+        renderChina();
+      }).catch(function () {
+        backendDown();
+        bjIsReal = false;
+        cnProblems = buildNationProblems(FAKE_EVENTS.data);
+        renderChina();
+      });
+    }
+
+    // ============================================================
+    // ⑩ 视图切换：全国 ↔ 园区
+    //    两组图层互斥，面板跟着换，左侧清单跟着换，最后重新取景。
+    // ============================================================
+    function setView(mode) {
+      viewMode = mode;
+      var china = (mode === 'china');
+
+      // 底图瓦片：全国视图不要（省界板块自己就是底图）
+      if (china) {
+        map.removeLayer(tileLayer);
+      } else if (!map.hasLayer(tileLayer)) {
+        tileLayer.addTo(map);
+      }
+
+      // 园区那套图层 / 全国那套图层，互斥
+      [campusLayer, trackLayer, evtLayer].forEach(function (g) {
+        if (china) { map.removeLayer(g); } else if (!map.hasLayer(g)) { g.addTo(map); }
+      });
+      [chinaLayer, siteLayer, probLayer].forEach(function (g) {
+        if (china) { if (!map.hasLayer(g)) { g.addTo(map); } } else { map.removeLayer(g); }
+      });
+
+      // 面板显隐：园区视图留轨迹控制条 + 事件面板，全国视图换成全国态势面板
+      document.getElementById('controls').style.display = china ? 'none' : '';
+      document.getElementById('evtPanel').style.display = china ? 'none' : 'flex';
+      document.getElementById('cnPanel').style.display = china ? 'flex' : 'none';
+
+      document.getElementById('btnViewChina').className = china ? 'on' : '';
+      document.getElementById('btnViewCampus').className = china ? '' : 'on';
+      document.getElementById('sideTitle').textContent = china ? '全国站点' : '巡检点清单';
+
+      var mapEl = document.getElementById('map');
+      if (china) {
+        mapEl.className = 'cn-mode';
+        map.fitBounds(CHINA_BOUNDS, { padding: [20, 20] });
+        renderSiteList();
+      } else {
+        mapEl.className = '';
+        // 回园区：按园区范围重新取景；底图还没到手就先落在园区中心
+        if (campusLayer.getLayers().length) {
+          map.fitBounds(campusLayer.getBounds(), { padding: [50, 50] });
+        } else {
+          map.setView([39.17, 116.15], 16);
+        }
+      }
+    }
+
+    document.getElementById('btnViewChina').onclick = function () { setView('china'); };
+    document.getElementById('btnViewCampus').onclick = function () { setView('campus'); };
+
+    // 站点弹窗里的"查看园区详情 →"链接 → 切回园区视图
+    // （只挂在一次上；弹窗是每次打开才生成的，用 popupopen 抓）
+    map.on('popupopen', function (e) {
+      var el = e.popup.getElement();
+      var a = el && el.querySelector('#cnDrill');
+      if (a) { a.onclick = function (ev) { ev.preventDefault(); setView('campus'); }; }
+    });
+
+    // 页面默认停在全国态势。园区那套照常在后台异步加载，
+    // 切回去时数据若已就绪会立刻呈现（各取景回调都判了 viewMode，不会抢镜头）。
+    setView('china');
+    loadChinaData();
+
+    // 省界数据没取到（多半是双击本文件用 file:// 打开的），左下角说明一下
+    if (typeof window.CHINA_GEO === 'undefined') {
+      statusEl.textContent = '⚠ 未取到中国省界数据：请用 http://127.0.0.1:5000/map 打开本页';
+      statusEl.style.color = '#dc2626';
+    }
   </script>
 </body>
 </html>
