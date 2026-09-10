@@ -1,7 +1,13 @@
-"""时空智能模块（C）—— 路径规划（成员 2）。
+"""时空智能模块（C）—— 路径规划 + 优先级调度 + 里程统计（成员 2）。
 
-职责：把「可选起点 + 一批巡检点」规划成一条覆盖所有巡检点的巡检路线。
-算法：最近邻贪心（TSP 近似）构造初始路线，再用 2-opt 局部搜索消交叉。
+三个职责整合进一个入口 plan_tour()：
+
+    1. 路径规划   ：把「可选起点 + 一批巡检点」规划成一条覆盖所有巡检点的巡检路线。
+    2. 优先级调度 ：巡检点带 priority 时，数字越小越先访问（同优先级内按距离贪心）。
+    3. 里程统计   ：传了 tracks 时，顺带返回无人机轨迹的「总里程 + 今日里程」。
+
+算法：最近邻贪心（TSP 近似）构造初始路线，再用 2-opt 局部搜索消交叉；
+     有 priority 时按优先级分组，2-opt 只允许同一优先级组内反转（不破坏优先级顺序）。
 
 这是后端真正接入的入口（backend/services.py 会探测
 spatiotemporal.planning.plan_tour），和 hello_planning.py 的 plan() 区别在于：
@@ -12,20 +18,28 @@ spatiotemporal.planning.plan_tour），和 hello_planning.py 的 plan() 区别�
 入参/出参契约见 docs/data-schema.md §5：
     入参：plan_tour(start, points)
         start  : 可选起点 {id, lng, lat}；不给则从第一个巡检点出发。
-        points : 巡检点列表，每个点是 {id, lng, lat}。
+        points : 巡检点列表，每个点是 {id, lng, lat, priority?}。
+                 priority 可选：数字越小越优先；都不给时退化为纯距离贪心。
+        tracks : 可选轨迹列表（data-schema.md §2 形状）；给了就在返回值里附上
+                 track_mileage（总里程 + 今日里程）。
     返回：{ route: [id, ...], total_distance_m: float }
+          传了 tracks 时额外含 track_mileage: { total_distance_m, today_distance_m }
 
 运行方式（在项目根目录）：
     python spatiotemporal/planning.py
 
 注意：本文件是后端 importlib.import_module("spatiotemporal.planning") 的接入点，
 必须零跨模块依赖（不能 from hello_planning import ...，包导入时那个名字不在
-sys.path 上），所以 haversine_m 在这里内联了一份。
+sys.path 上），所以 haversine_m / _two_opt / _utc8_date 都在这里内联一份。
 """
 
+import json
 import math
+from datetime import date, datetime, timedelta, timezone
+from pathlib import Path
 
 R_EARTH_M = 6_371_000.0
+CN_TZ = timezone(timedelta(hours=8))  # 中国时区 UTC+8（里程「今日」判定用）
 
 
 def haversine_m(lng1: float, lat1: float, lng2: float, lat2: float) -> float:
@@ -44,7 +58,7 @@ def _two_opt(order: list[str], pos: dict, group_of: dict | None = None) -> list[
     order   : 节点 id 的访问顺序（order[0] 是固定起点，不会被移动）。
     pos     : {id: (lng, lat)}。
     group_of: 可选 {id: 组键}。给了就只允许反转「同一组内」的子段
-              （用于 schedule 的优先级约束：不跨优先级反转）。
+              （用于优先级约束：不跨优先级反转）。
 
     反复尝试反转子段 order[i:j+1]：若反转后总长变短则接受，直到无改进。
     """
@@ -69,62 +83,172 @@ def _two_opt(order: list[str], pos: dict, group_of: dict | None = None) -> list[
     return order
 
 
-def plan_tour(start: dict | None, points: list[dict], optimize: bool = True) -> dict:
-    """最近邻贪心 + 2-opt 路径规划（单路线）。
+def plan_tour(start: dict | None, points: list[dict], optimize: bool = True,
+              tracks: list[dict] | None = None) -> dict:
+    """统一入口：路径规划（含优先级调度）+ 可选里程统计。
 
     start    : 可选起点 {id, lng, lat}。若给，则从它出发并计入第一段里程，
                但它本身不出现在 route 里（契约如此）。
-    points   : 巡检点列表，每个点是 {id, lng, lat}。
+    points   : 巡检点列表，每个点是 {id, lng, lat, priority?}。
+               priority 可选：数字越小越先访问；都不给时退化为纯距离贪心。
     optimize : 是否对贪心结果再做 2-opt 局部搜索（默认 True，结果不差于纯贪心）。
+    tracks   : 可选轨迹列表（data-schema.md §2 形状）；给了就在返回值里附上
+               track_mileage = summarize_mileage(tracks)。
 
     返回     : {"route": [id, ...], "total_distance_m": 米（保留两位小数）}
+               传了 tracks 时额外含 track_mileage: {total_distance_m, today_distance_m}
     """
     if not points:
-        return {"route": [], "total_distance_m": 0.0}
+        result = {"route": [], "total_distance_m": 0.0}
+        if tracks is not None:
+            result["track_mileage"] = summarize_mileage(tracks)
+        return result
 
     # 坐标索引：巡检点 + 可选起点（起点在完整路径里固定在最前）
     pos = {p["id"]: (p["lng"], p["lat"]) for p in points}
     if start:
         pos[start["id"]] = (start["lng"], start["lat"])
 
-    # 1. 最近邻贪心构造初始顺序（route 不含 start）
-    route: list[str] = []
-    unvisited = {p["id"] for p in points}
+    # 1. 按 priority 升序分组（缺省 1；全缺省时就是单一组 = 纯路径规划）
+    groups: dict[int, list[dict]] = {}
+    for p in points:
+        groups.setdefault(p.get("priority", 1), []).append(p)
+
+    route: list[str] = []      # 最终访问顺序（巡检点 id）
     # cur 是「当前位置」的 (lng, lat)。还没定起点时是 None。
     cur: tuple[float, float] | None = (start["lng"], start["lat"]) if start else None
 
-    # 没给 start 时：取第一个巡检点作为起点，不产生里程
-    if cur is None:
-        first = points[0]["id"]
-        route.append(first)
-        unvisited.remove(first)
-        cur = pos[first]
+    # 2. 逐个优先级组做最近邻贪心（sorted(groups) 即按 priority 从小到大）
+    for priority in sorted(groups):
+        unvisited = {p["id"] for p in groups[priority]}
+        # 组内第一个点：如果整条路线还没有起点，就取本组第一个点不产生里程
+        if cur is None:
+            first_id = groups[priority][0]["id"]
+            route.append(first_id)
+            unvisited.remove(first_id)
+            cur = pos[first_id]
+        # 组内最近邻贪心：每次从当前点去最近的未访问点
+        while unvisited:
+            nxt = min(unvisited, key=lambda x: (haversine_m(cur[0], cur[1], *pos[x]), x))
+            route.append(nxt)
+            unvisited.remove(nxt)
+            cur = pos[nxt]
 
-    # 每次从当前点去最近的未访问点
-    while unvisited:
-        nxt = min(unvisited, key=lambda x: (haversine_m(cur[0], cur[1], *pos[x]), x))
-        route.append(nxt)
-        unvisited.remove(nxt)
-        cur = pos[nxt]
-
-    # 2. 完整路径（含 start）上做 2-opt 消交叉
+    # 3. 完整路径（含 start）上做 2-opt；多优先级时只允许同一 priority 内反转
     order = ([start["id"]] + route) if start else route
     if optimize:
-        order = _two_opt(order, pos)
+        priority_of = {p["id"]: p.get("priority", 1) for p in points}
+        order = _two_opt(order, pos, group_of=priority_of)
 
-    # 3. 输出：route 不含 start，total 按完整路径累加
+    # 4. 输出：route 不含 start，total 按完整路径累加
     route_out = order[1:] if start else order
     total = sum(haversine_m(*pos[order[i]], *pos[order[i + 1]]) for i in range(len(order) - 1))
-    return {"route": route_out, "total_distance_m": round(total, 2)}
+    result = {"route": route_out, "total_distance_m": round(total, 2)}
+
+    # 5. 可选：附上轨迹里程统计（原 summarize_mileage 的职责）
+    if tracks is not None:
+        result["track_mileage"] = summarize_mileage(tracks)
+    return result
+
+
+def load_inspection_points(geojson_path) -> list[dict]:
+    """从园区地图 GeoJSON 里读出所有巡检点（kind=inspection_point）
+
+    把每个巡检点转成 plan_tour() 需要的格式：{id, lng, lat, priority}。
+    """
+    data = json.loads(Path(geojson_path).read_text(encoding="utf-8"))
+    points = []
+    for feat in data["features"]:
+        props = feat["properties"]
+        if props.get("kind") != "inspection_point":
+            continue  # 跳过建筑、道路等非巡检点的要素
+        lng, lat = feat["geometry"]["coordinates"]
+        points.append({
+            "id": props["id"],
+            "lng": lng,
+            "lat": lat,
+            "priority": props.get("priority", 1),
+        })
+    return points
+
+
+def _utc8_date(timestamp: str) -> date | None:
+    """把 ISO 8601 时间戳转成 UTC+8 的日期；解析失败返回 None。
+
+    轨迹 timestamp 形如 "2026-09-01T08:00:00Z"。先把 Z 换成 +00:00 再解析，
+    兼容旧版 Python（fromisoformat 直到 3.11 才支持 Z 后缀），再转到东八区取日期。
+    """
+    try:
+        dt = datetime.fromisoformat(timestamp.replace("Z", "+00:00"))
+        if dt.tzinfo is None:  # 没带时区的当 UTC 处理
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(CN_TZ).date()
+    except (ValueError, TypeError):
+        return None
+
+
+def summarize_mileage(tracks: list[dict], today: date | None = None) -> dict:
+    """累加所有轨迹的里程，返回总里程 + 今日里程。
+
+    tracks : 轨迹对象列表，每个元素含 "track"（点列表，点含 timestamp/lng/lat）。
+    today  : 判断「今日」的日期；缺省取 UTC+8 的今天。
+
+    总里程   = 所有相邻轨迹点 haversine 距离之和。
+    今日里程 = 同上，但只统计「段起点 UTC+8 日期 == 今天」的段。
+    """
+    if today is None:
+        today = datetime.now(CN_TZ).date()
+
+    total = 0.0
+    today_dist = 0.0
+    for traj in tracks:
+        track = traj.get("track", [])
+        for a, b in zip(track, track[1:]):
+            d = haversine_m(a["lng"], a["lat"], b["lng"], b["lat"])
+            total += d
+            # 段归「今天」当且仅当段起点（a）的 UTC+8 日期 == today
+            if _utc8_date(a.get("timestamp", "")) == today:
+                today_dist += d
+    return {
+        "total_distance_m": round(total, 2),
+        "today_distance_m": round(today_dist, 2),
+    }
 
 
 if __name__ == "__main__":
-    # 直接用契约里的样例数据（docs/data-schema.md §5）
-    start = {"id": "IP-000", "lng": 116.12, "lat": 39.13}
-    points = [
-        {"id": "IP-001", "lng": 116.15, "lat": 39.18},
-        {"id": "IP-002", "lng": 116.17, "lat": 39.16},
-    ]
+    # ---- 路径规划（含优先级调度）演示 ----
+    # 从真实园区地图里读出所有巡检点（不用再手写样例数据）
+    map_path = Path(__file__).resolve().parent.parent / "data" / "map" / "campus.geojson"
+    points = load_inspection_points(map_path)
+    # 起点：假设是园区门口的机库（地图里没有这个点，先临时指定一个）
+    start = {"id": "IP-000", "lng": 116.11, "lat": 39.12}
+
     result = plan_tour(start, points)
-    print("路径规划运行成功！输出：")
-    print(result)
+
+    # 把 start 放在最前面，和访问顺序拼成一条完整路径
+    path = [start["id"]] + result["route"]
+
+    print("路径规划运行成功！")
+    print(f"共 {len(points)} 个巡检点")
+    print("巡检路径：")
+    print("  " + " → ".join(path))
+    print(f"规划总里程：{result['total_distance_m']} 米")
+    print()
+
+    # ---- 里程统计演示 ----
+    # 用契约 §2 的样例形状，构造一条「昨天 + 今天」的轨迹演示。
+    # 时间戳 16:00Z 是 UTC+8 的午夜分界：15:59Z 仍是昨天，16:01Z 已是今天。
+    tracks = [{
+        "task_id": "task-demo",
+        "agent_id": "drone-01",
+        "status": "finished",
+        "track": [
+            {"timestamp": "2026-09-08T15:59:00Z", "lng": 116.0, "lat": 39.00},
+            {"timestamp": "2026-09-08T16:01:00Z", "lng": 116.0, "lat": 39.01},
+            {"timestamp": "2026-09-09T08:00:00Z", "lng": 116.0, "lat": 39.02},
+        ],
+    }]
+    mileage = summarize_mileage(tracks, today=date(2026, 9, 9))
+    print("里程统计运行成功！")
+    print(f"总里程：{mileage['total_distance_m']} 米")
+    print(f"今日里程：{mileage['today_distance_m']} 米")
