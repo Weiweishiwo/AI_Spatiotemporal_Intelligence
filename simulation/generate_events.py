@@ -29,8 +29,8 @@ for i in range(1,9):
         "event_id":f"EVT-{i:03d}",
         "task_id": "task-001",
         "timestamp": timestamp,   # 先写死，下一步再让它递增
-        "lng": round(lng,3),          # 提示：round(lng, 3)
-        "lat": round(lat,3),
+        "lng": round(lng,5),
+        "lat": round(lat,5),
         "type": random.choice(EVENT_TYPES),         # 提示：random.choice(EVENT_TYPES)
         "confidence": round(random.uniform(0.5,1.0),2),   # 提示：random.uniform(0.5, 1.0)，再 round 到 2 位
         "image_path": "data/images/placeholder.jpg",
