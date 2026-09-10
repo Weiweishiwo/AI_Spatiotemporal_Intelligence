@@ -138,3 +138,32 @@ section[id] {
 .auth-dot.is-off {
   background: #ef4444; /* 红：后端离线 */
 }
+
+/* ===== 时空智能仪表盘（static/js/spatiotemporal.js） ===== */
+
+/* 重新拉数时保留上一帧、只降透明度：不闪骨架屏、不跳布局 */
+.st-loading {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+/* 图表共享 tooltip（跟随光标）。纯增强：每个值都在轴上直标，且可切表格视图 */
+.st-tip {
+  position: absolute;
+  z-index: 20;
+  pointer-events: none;
+  padding: 4px 8px;
+  border: 1px solid hsl(var(--border));
+  border-radius: 6px;
+  background: hsl(var(--card));
+  box-shadow: 0 4px 14px hsl(210 30% 16% / 0.12);
+  font-size: 12px;
+  color: hsl(var(--foreground));
+  white-space: nowrap;
+}
+
+/* SVG 图元命中时给一点反馈（命中区是整行/整段，不必瞄准细条） */
+.st-hit:hover,
+.st-bar-hit:hover {
+  cursor: default;
+}
