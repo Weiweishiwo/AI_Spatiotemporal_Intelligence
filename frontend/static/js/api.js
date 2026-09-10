@@ -1,6 +1,8 @@
 /* api.js —— 官网首页与数据详情页共享的后端数据工具（window.API）
  *
- * 配套后端 FastAPI http://127.0.0.1:8000（7 个冻结契约接口，只读使用，不改后端）：
+ * 配套后端 FastAPI http://127.0.0.1:8000（7 个冻结契约接口，只用不改后端）：
+ *   GET 走 apiGet；计算类接口 /api/plan、/api/detect 走 apiPost（本文件只做转发，
+ *   算法在 B/C 模块里，后端一行不改）。
  *   /api/map  /api/trajectory?task_id=  /api/events  /api/report?task_id=  /api/plan  /api/detect  /api/health
  * 信封约定：{code:0, message, data}，code===0 才算成功（失败 data 为 null）。
  * 映射表/配色与 pure_html_map/index.html（/map 页）同源，保证跨页视觉一致。
@@ -18,27 +20,53 @@
   /* ---------- 基础请求 ---------- */
 
   // 归一化信封：{ok, code, message, data, netError?, httpStatus?}
+  // 注意 httpStatus 的不对称是**刻意保留**的：解析失败分支带 httpStatus，而下面的
+  // .catch 分支不带 —— 页面靠这一点区分「反代返回了 5xx 非 JSON」与「fetch 整体失败」，
+  // 别顺手「规范化」掉（详见 apiPost 上方对 50001/504 的说明）。
+  function unwrap(resp) {
+    return resp.text().then(function (txt) {
+      var r = { ok: false, httpStatus: resp.status, message: 'HTTP ' + resp.status };
+      try {
+        var j = JSON.parse(txt);
+        r.code = j.code;
+        r.message = j.message;
+        r.data = j.data;
+        r.ok = resp.ok && j.code === 0;
+      } catch (e) {
+        r.netError = true;
+        r.message = '响应解析失败';
+      }
+      return r;
+    });
+  }
+
+  // 请求没拿到可解析信封时的统一返回（每次新建对象，避免调用方改写互相串味）
+  function netDown() {
+    return { ok: false, netError: true, message: '无法连接后端服务（127.0.0.1:8000）' };
+  }
+
   function apiGet(path) {
     return fetch(API_BASE + path, { cache: 'no-store' })
-      .then(function (resp) {
-        return resp.text().then(function (txt) {
-          var r = { ok: false, httpStatus: resp.status, message: 'HTTP ' + resp.status };
-          try {
-            var j = JSON.parse(txt);
-            r.code = j.code;
-            r.message = j.message;
-            r.data = j.data;
-            r.ok = resp.ok && j.code === 0;
-          } catch (e) {
-            r.netError = true;
-            r.message = '响应解析失败';
-          }
-          return r;
-        });
-      })
-      .catch(function () {
-        return { ok: false, netError: true, message: '无法连接后端服务（127.0.0.1:8000）' };
-      });
+      .then(unwrap)
+      .catch(function () { return netDown(); });
+  }
+
+  // POST 冻结契约接口（当前只有 /api/plan、/api/detect 用）。
+  // Content-Type 必须显式带上：缺了 FastAPI 直接按 422 打回（实测），与 auth.js 的
+  // request() 同一套约定。body 仅在非空时序列化 —— 「无体请求不能带 body」是本项目
+  // 已经踩过的坑（见 auth.js 里 GET 不带 body 的注释）。
+  // 失败语义与 apiGet 完全一致：code===0 才算 ok；netError 表示压根没拿到信封
+  // （浏览器层失败，或反代 50001/504 这类「后端超时」）。
+  function apiPost(path, body) {
+    var init = {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      cache: 'no-store'
+    };
+    if (body !== undefined && body !== null) init.body = JSON.stringify(body);
+    return fetch(API_BASE + path, init)
+      .then(unwrap)
+      .catch(function () { return netDown(); });
   }
 
   /* ---------- 映射表（与 /map 页同源） ---------- */
@@ -114,6 +142,20 @@
     if (isNaN(v)) return '--';
     var s = v.toFixed(digits == null ? 1 : digits);
     return s.replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1');
+  }
+
+  // 信封 → 人话（fmtNum 的同类：跨页共用的纯函数，故放这一节）。
+  // 前端能分辨的失败：后端没起（502/50000）、反代读超时（504/50001）、
+  // 图片不存在（40401）、参数被后端拒（42200）、浏览器层失败（netError 且无 httpStatus）。
+  // 原先写在 capabilities.html 里，接 /report 时提上来 —— 同一份映射两处各写一份必然漂
+  // （本项目已在 TYPE_DOT/TYPE_META 配色上踩过这个坑）。加分支只改这里。
+  function errText(r, fallback) {
+    if (r.code === 50000) return '后端服务不可用（请确认 127.0.0.1:8000 已启动）';
+    if (r.code === 50001) return r.message || '后端响应超时，请重试';
+    if (r.code === 40401) return r.message || '图片不存在';
+    if (r.code === 42200) return '请求参数被后端拒绝（42200）';
+    if (r.netError) return '拿不到后端响应，请确认后端已启动后重试';
+    return r.message || fallback;
   }
 
   /* ---------- 聚合统计（前端基于冻结接口原始数据现算） ---------- */
@@ -310,6 +352,29 @@
       }
     }
 
+    // 规划路线（可选）：开口巡回，画成虚线 + 序号标记，和轨迹实线蓝区分开。
+    // 这里**不复用 track** —— track 分支会画实线蓝并强行加「起点/终点」marker，
+    // 那是「一段航程」的语义，套到巡检路线上是伪造含义；且没有虚线选项。
+    var rt = opts.route;
+    if (rt && rt.length > 1) {
+      var rline = rt.map(function (q) { return [q.lat, q.lng]; });
+      L.polyline(rline, { color: '#0e8a8a', weight: 4, opacity: 0.95, dashArray: '10 7' }).addTo(map);
+      for (var ri = 0; ri < rline.length; ri++) {
+        var label = (rt[ri].name || rt[ri].id || ('第 ' + (ri + 1) + ' 站'));
+        L.marker(rline[ri], {
+          icon: L.divIcon({
+            className: '',            // 置空去掉 leaflet-div-icon 的白底默认样式
+            iconSize: [22, 22], iconAnchor: [11, 11],
+            html: '<div style="width:22px;height:22px;border-radius:50%;background:#ffffff;' +
+              'border:2px solid #0e8a8a;color:#0e8a8a;font-size:12px;font-weight:600;' +
+              'line-height:18px;text-align:center;box-shadow:0 1px 3px rgba(0,0,0,.3)">' +
+              (ri + 1) + '</div>'
+          })
+        }).bindPopup(label + ' · 第 ' + (ri + 1) + ' 站').addTo(map);
+      }
+      all = all.concat(rline);
+    }
+
     if (opts.fit !== false && all.length) {
       try { map.fitBounds(L.latLngBounds(all), { padding: [40, 40] }); }
       catch (err) { /* 单点时 fitBounds 可抛错，忽略 */ }
@@ -356,10 +421,10 @@
     STATUS_CN: STATUS_CN, STATUS_DOT: STATUS_DOT,
     TASK_STATUS_CN: TASK_STATUS_CN,
     PRIORITY_CN: PRIORITY_CN, PRIORITY_DOT: PRIORITY_DOT,
-    apiGet: apiGet,
+    apiGet: apiGet, apiPost: apiPost,
     typeCN: typeCN, typeDot: typeDot, statusCN: statusCN, statusDot: statusDot,
     prioCN: prioCN, prioDot: prioDot,
-    fmtDateTime: fmtDateTime, fmtDur: fmtDur, fmtNum: fmtNum,
+    fmtDateTime: fmtDateTime, fmtDur: fmtDur, fmtNum: fmtNum, errText: errText,
     haversineM: haversineM, setText: setText,
     trackStats: trackStats, coverage: coverage, aggEvents: aggEvents,
     nearCounts: nearCounts, inspectionFeatures: inspectionFeatures,

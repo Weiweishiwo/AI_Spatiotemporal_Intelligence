@@ -230,14 +230,14 @@
 
   /* ---------- 启动 ---------- */
 
-  // 登录页特判：已有有效会话直接弹回地图页（不显示登录框）
+  // 登录页特判：已有有效会话直接弹回首页（不显示登录框）
   var isLoginPage = !!document.getElementById('login-submit');
 
   if (isLoginPage) {
     var token0 = getToken();
     if (token0) {
       apiMe(token0).then(function (r) {
-        if (r.ok) { location.replace('/map'); }        // 会话还有效
+        if (r.ok) { location.replace('/'); }           // 会话还有效
         else if (r.unauthorized) { clearSession(); }    // 过期 → 留下正常登录
         // 网络错误：后端没起，登录页照常可用，不清 token
       }).catch(function () {});
