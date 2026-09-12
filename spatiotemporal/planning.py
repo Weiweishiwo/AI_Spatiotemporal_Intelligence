@@ -1,28 +1,36 @@
-"""时空智能模块（C）—— 任务调度 + 里程统计（成员 2）。
+"""时空智能模块（C）—— 路径规划 + 优先级调度 + 里程统计（成员 2）。
 
-两部分职责：
-    1. schedule()          —— 路径规划 + 优先级调度：priority 数字越小的巡检点越先访问，
-                               同一优先级内再按距离贪心（最近邻 TSP 近似）。
-    2. summarize_mileage() —— 里程统计：把无人机轨迹累加成「总里程 + 今日里程」。
+三个职责整合进一个入口 plan_tour()：
 
-和 hello_planning.py 里的 plan() 的区别：
-    - plan()      ：不看优先级，纯按距离贪心（最近邻 TSP 近似）。
-    - schedule()  ：priority 数字越小的巡检点越先访问，同一优先级内再按距离贪心。
+    1. 路径规划   ：把「可选起点 + 一批巡检点」规划成一条覆盖所有巡检点的巡检路线。
+    2. 优先级调度 ：巡检点带 priority 时，数字越小越先访问（同优先级内按距离贪心）。
+    3. 里程统计   ：传了 tracks 时，顺带返回无人机轨迹的「总里程 + 今日里程」。
 
-一句话概括 schedule 的思路：
-    先按 priority 分组 → 组内各自做最近邻贪心 → 各组按优先级从小到大串成一条线。
+算法：最近邻贪心（TSP 近似）构造初始路线，再用 2-opt 局部搜索消交叉；
+     有 priority 时按优先级分组，2-opt 只允许同一优先级组内反转（不破坏优先级顺序）。
 
-入参/出参契约：
-    schedule()：见 docs/data-schema.md §5
-        入参：{ start?: {id, lng, lat}, points: [{id, lng, lat, priority}, ...] }
-        返回：{ route: [id, ...], total_distance_m: float }
-        （route 不含 start，但总里程会算上从 start 出发的第一段距离）
-    summarize_mileage()：见 docs/data-schema.md §2
-        入参：tracks —— 轨迹对象列表，每个元素含 track 点列表
-        返回：{ total_distance_m: float, today_distance_m: float }
+这是后端真正接入的入口（backend/services.py 会探测
+spatiotemporal.planning.plan_tour），和 hello_planning.py 的 plan() 区别在于：
+    - plan()      ：把 start 当普通节点，会把它塞进 route（不符合契约）。
+    - plan_tour() ：route 只含巡检点 id，不含 start，但总里程计入
+                    「start → 第一个巡检点」这一段（对齐 docs/data-schema.md §5）。
+
+入参/出参契约见 docs/data-schema.md §5：
+    入参：plan_tour(start, points)
+        start  : 可选起点 {id, lng, lat}；不给则从第一个巡检点出发。
+        points : 巡检点列表，每个点是 {id, lng, lat, priority?}。
+                 priority 可选：数字越小越优先；都不给时退化为纯距离贪心。
+        tracks : 可选轨迹列表（data-schema.md §2 形状）；给了就在返回值里附上
+                 track_mileage（总里程 + 今日里程）。
+    返回：{ route: [id, ...], total_distance_m: float }
+          传了 tracks 时额外含 track_mileage: { total_distance_m, today_distance_m }
 
 运行方式（在项目根目录）：
-    python spatiotemporal/Scheduling.py
+    python spatiotemporal/planning.py
+
+注意：本文件是后端 importlib.import_module("spatiotemporal.planning") 的接入点，
+必须零跨模块依赖（不能 from hello_planning import ...，包导入时那个名字不在
+sys.path 上），所以 haversine_m / _two_opt / _utc8_date 都在这里内联一份。
 """
 
 import json
@@ -35,13 +43,7 @@ CN_TZ = timezone(timedelta(hours=8))  # 中国时区 UTC+8（里程「今日」�
 
 
 def haversine_m(lng1: float, lat1: float, lng2: float, lat2: float) -> float:
-    """两个经纬度点之间的地表距离（米），Haversine 公式，纯 Python 实现。
-
-    说明：本文件可能被按包导入（spatiotemporal.Scheduling），包导入时
-    hello_planning 不在 sys.path 上，所以这里内联一份、不跨模块 import
-    （与 backend/services.py 的 _haversine_m、planning.py 的 haversine_m
-    保持一致，各自自包含）。
-    """
+    """两个经纬度点之间的地表距离（米），Haversine 公式，纯 Python 实现。"""
     p1, p2 = math.radians(lat1), math.radians(lat2)
     d_lat = math.radians(lat2 - lat1)
     d_lng = math.radians(lng2 - lng1)
@@ -56,7 +58,7 @@ def _two_opt(order: list[str], pos: dict, group_of: dict | None = None) -> list[
     order   : 节点 id 的访问顺序（order[0] 是固定起点，不会被移动）。
     pos     : {id: (lng, lat)}。
     group_of: 可选 {id: 组键}。给了就只允许反转「同一组内」的子段
-              （用于 schedule 的优先级约束：不跨优先级反转）。
+              （用于优先级约束：不跨优先级反转）。
 
     反复尝试反转子段 order[i:j+1]：若反转后总长变短则接受，直到无改进。
     """
@@ -81,30 +83,36 @@ def _two_opt(order: list[str], pos: dict, group_of: dict | None = None) -> list[
     return order
 
 
-def schedule(points: list[dict], start: dict | None = None) -> dict:
-    """优先级调度（单路线）。
+def plan_tour(start: dict | None, points: list[dict], optimize: bool = True,
+              tracks: list[dict] | None = None) -> dict:
+    """统一入口：路径规划（含优先级调度）+ 可选里程统计。
 
-    points : 巡检点列表，每个点是 {id, lng, lat, priority}。
-    start  : 可选起点 {id, lng, lat}。若给，则从它出发并计入第一段里程，
-             但它本身不出现在 route 里（契约如此）。
+    start    : 可选起点 {id, lng, lat}。若给，则从它出发并计入第一段里程，
+               但它本身不出现在 route 里（契约如此）。
+    points   : 巡检点列表，每个点是 {id, lng, lat, priority?}。
+               priority 可选：数字越小越先访问；都不给时退化为纯距离贪心。
+    optimize : 是否对贪心结果再做 2-opt 局部搜索（默认 True，结果不差于纯贪心）。
+    tracks   : 可选轨迹列表（data-schema.md §2 形状）；给了就在返回值里附上
+               track_mileage = summarize_mileage(tracks)。
 
-    返回   : {"route": [id, ...], "total_distance_m": 米（保留两位小数）}
-
-    实现   : 先按 priority 分组做最近邻贪心串成一条线，再在每个优先级组
-             内部做 2-opt 消交叉（不跨组反转，保持优先级顺序）。
+    返回     : {"route": [id, ...], "total_distance_m": 米（保留两位小数）}
+               传了 tracks 时额外含 track_mileage: {total_distance_m, today_distance_m}
     """
     if not points:
-        return {"route": [], "total_distance_m": 0.0}
+        result = {"route": [], "total_distance_m": 0.0}
+        if tracks is not None:
+            result["track_mileage"] = summarize_mileage(tracks)
+        return result
 
     # 坐标索引：巡检点 + 可选起点（起点在完整路径里固定在最前）
     pos = {p["id"]: (p["lng"], p["lat"]) for p in points}
     if start:
         pos[start["id"]] = (start["lng"], start["lat"])
 
-    # 1. 按 priority 升序分组（契约约定：priority 数字越小越优先）
+    # 1. 按 priority 升序分组（缺省 1；全缺省时就是单一组 = 纯路径规划）
     groups: dict[int, list[dict]] = {}
     for p in points:
-        groups.setdefault(p["priority"], []).append(p)
+        groups.setdefault(p.get("priority", 1), []).append(p)
 
     route: list[str] = []      # 最终访问顺序（巡检点 id）
     # cur 是「当前位置」的 (lng, lat)。还没定起点时是 None。
@@ -126,21 +134,27 @@ def schedule(points: list[dict], start: dict | None = None) -> dict:
             unvisited.remove(nxt)
             cur = pos[nxt]
 
-    # 3. 完整路径（含 start）上做「组内 2-opt」：只反转同一 priority 的子段
+    # 3. 完整路径（含 start）上做 2-opt；多优先级时只允许同一 priority 内反转
     order = ([start["id"]] + route) if start else route
-    priority_of = {p["id"]: p["priority"] for p in points}
-    order = _two_opt(order, pos, group_of=priority_of)
+    if optimize:
+        priority_of = {p["id"]: p.get("priority", 1) for p in points}
+        order = _two_opt(order, pos, group_of=priority_of)
 
     # 4. 输出：route 不含 start，total 按完整路径累加
     route_out = order[1:] if start else order
     total = sum(haversine_m(*pos[order[i]], *pos[order[i + 1]]) for i in range(len(order) - 1))
-    return {"route": route_out, "total_distance_m": round(total, 2)}
+    result = {"route": route_out, "total_distance_m": round(total, 2)}
+
+    # 5. 可选：附上轨迹里程统计（原 summarize_mileage 的职责）
+    if tracks is not None:
+        result["track_mileage"] = summarize_mileage(tracks)
+    return result
 
 
 def load_inspection_points(geojson_path) -> list[dict]:
     """从园区地图 GeoJSON 里读出所有巡检点（kind=inspection_point）
 
-    把每个巡检点转成 schedule() 需要的格式：{id, lng, lat, priority}。
+    把每个巡检点转成 plan_tour() 需要的格式：{id, lng, lat, priority}。
     """
     data = json.loads(Path(geojson_path).read_text(encoding="utf-8"))
     points = []
@@ -202,22 +216,23 @@ def summarize_mileage(tracks: list[dict], today: date | None = None) -> dict:
 
 
 if __name__ == "__main__":
-    # ---- 任务调度演示 ----
+    # ---- 路径规划（含优先级调度）演示 ----
     # 从真实园区地图里读出所有巡检点（不用再手写样例数据）
     map_path = Path(__file__).resolve().parent.parent / "data" / "map" / "campus.geojson"
     points = load_inspection_points(map_path)
     # 起点：假设是园区门口的机库（地图里没有这个点，先临时指定一个）
     start = {"id": "IP-000", "lng": 116.11, "lat": 39.12}
 
-    result = schedule(points, start=start)
+    result = plan_tour(start, points)
 
     # 把 start 放在最前面，和访问顺序拼成一条完整路径
     path = [start["id"]] + result["route"]
 
-    print("任务调度运行成功！")
+    print("路径规划运行成功！")
     print(f"共 {len(points)} 个巡检点")
     print("巡检路径：")
     print("  " + " → ".join(path))
+    print(f"规划总里程：{result['total_distance_m']} 米")
     print()
 
     # ---- 里程统计演示 ----

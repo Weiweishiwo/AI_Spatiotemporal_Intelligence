@@ -230,14 +230,14 @@
 
     if (r.ok) {
       Auth.saveSession(r.data.token, r.data.user, document.getElementById('remember').checked);
-      showMsg('登录成功，正在进入地图…', 'success');
-      setTimeout(() => { location.replace('/map'); }, 800);
+      showMsg('登录成功，正在返回首页…', 'success');
+      setTimeout(() => { location.replace('/'); }, 800);
     } else {
       showMsg(r.netError ? '无法连接后端服务，请确认后端已启动（127.0.0.1:8000）' : (r.message || '登录失败，请重试'), 'error');
     }
   });
 
-  // 注册提交（接后端 POST /api/auth/register；成功即自动登录跳地图）
+  // 注册提交（接后端 POST /api/auth/register；成功即自动登录并回首页）
   document.getElementById('register-submit').addEventListener('submit', async (e) => {
     e.preventDefault();
     if (e.target._busy) return;
@@ -262,8 +262,8 @@
 
     if (r.ok) {
       Auth.saveSession(r.data.token, r.data.user, false); // 注册默认不记住
-      showMsg('注册成功，已自动登录，正在进入地图…', 'success');
-      setTimeout(() => { location.replace('/map'); }, 800);
+      showMsg('注册成功，已自动登录，正在返回首页…', 'success');
+      setTimeout(() => { location.replace('/'); }, 800);
     } else {
       showMsg(r.netError ? '无法连接后端服务，请确认后端已启动（127.0.0.1:8000）' : (r.message || '注册失败，请重试'), 'error');
     }

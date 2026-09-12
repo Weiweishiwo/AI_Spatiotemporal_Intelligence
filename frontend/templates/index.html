@@ -22,7 +22,7 @@
       <a href="/" class="rounded-md px-3 py-2 text-sm font-medium text-primary">首页</a>
       <a href="/#capabilities" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">产品能力</a>
       <a href="/#solutions" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">解决方案</a>
-      <a href="/#solutions" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">时空智能</a>
+      <a href="/#spatiotemporal" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">时空智能</a>
       <a href="/#capabilities" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">设备管理</a>
       <a href="/#cases" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">案例中心</a>
       <a href="/#clients" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">关于我们</a>
@@ -57,7 +57,7 @@
       <a href="/" class="rounded-md px-3 py-2.5 text-sm font-medium text-primary">首页</a>
       <a href="/#capabilities" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">产品能力</a>
       <a href="/#solutions" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">解决方案</a>
-      <a href="/#solutions" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">时空智能</a>
+      <a href="/#spatiotemporal" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">时空智能</a>
       <a href="/#capabilities" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">设备管理</a>
       <a href="/#cases" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">案例中心</a>
       <a href="/#clients" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">关于我们</a>
@@ -278,6 +278,41 @@
   </div>
 </section>
 
+<!-- ===== 时空智能 · 全域数据总览 ===== -->
+<section id="spatiotemporal" class="relative py-20 md:py-28">
+  <div class="mx-auto max-w-7xl px-4 md:px-8">
+    <div class="reveal mx-auto max-w-2xl text-center">
+      <p class="text-sm font-medium text-accent">SPATIOTEMPORAL INTELLIGENCE</p>
+      <h2 class="mt-3 text-2xl font-semibold md:text-4xl">时空智能 · 全域数据总览</h2>
+      <p class="mt-4 text-sm leading-relaxed text-muted-foreground md:text-base">
+        轨迹、感知节点、异常事件三大数据源汇总到一屏；指标全部由后端接口实时现算，不是预置的展示数字
+      </p>
+      <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+        <a href="/report" class="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">
+          查看巡检报告
+          <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+        </a>
+      </div>
+    </div>
+
+    <!-- 整块由 static/js/spatiotemporal.js 渲染；后端不可用时降级为明确的离线提示，不编数字 -->
+    <div id="stDash" class="reveal relative mt-14">
+      <div class="flex justify-end">
+        <button id="stDashViewBtn" type="button" aria-pressed="false"
+                class="cursor-pointer rounded-md border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground">
+          表格视图
+        </button>
+      </div>
+      <div id="stDashBar" class="mt-3"></div>
+      <div id="stDashCharts" class="mt-5">
+        <div class="tech-card rounded-2xl p-10 text-center text-sm text-muted-foreground">正在从后端拉取全域数据…</div>
+      </div>
+      <!-- 表格视图：各图的无障碍等价物（显隐用 style.display，不用 Tailwind hidden 类） -->
+      <div id="stDashTable" class="mt-5" style="display:none"></div>
+    </div>
+  </div>
+</section>
+
 <!-- ===== 落地案例 ===== -->
 <section id="cases" class="relative py-20 md:py-28">
   <div class="mx-auto max-w-7xl px-4 md:px-8">
@@ -373,11 +408,17 @@
   </div>
 </footer>
 
+<!-- 时空智能仪表盘渲染器：自守卫，只在存在 #stDash 的页面生效 -->
+<script src="{{ url_for('static', filename='js/spatiotemporal.js') }}"></script>
 <script>
   // 三卡真实统计：载入即刷，此后每分钟轻刷（api.js 自守卫，数字为后端真实值）
   if (window.API) {
     API.initHomeStats();
     setInterval(API.initHomeStats, 60000);
+  }
+  // 时空智能仪表盘：与三卡同一轮询节奏（首帧由 spatiotemporal.js 自己在 DOMContentLoaded 时拉）
+  if (window.Spatiotemporal) {
+    setInterval(window.Spatiotemporal.refresh, 60000);
   }
 </script>
 {% endblock %}

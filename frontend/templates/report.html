@@ -1,0 +1,255 @@
+{% extends "base.html" %}
+
+{% block meta %}
+<title>巡检报告 · AI 智能体时空智能平台</title>
+<meta name="description" content="任务 task-001 的巡检报告：任务总结、异常事件清单与结论，支持 SSE 流式生成进度。" />
+{% endblock %}
+
+{% block content %}
+<!-- ===== 顶部导航（同官网，当前页不高亮） ===== -->
+<header class="fixed inset-x-0 top-0 z-50 bg-background/85 backdrop-blur-md border-b border-border">
+  <div class="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 md:px-8">
+    <a href="/" class="flex items-center gap-2 shrink-0">
+      <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
+        <svg class="h-5 w-5 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" />
+          <path d="M4 6V4a2 2 0 0 1 2-2h2" />
+          <path d="M5 11.07 3.34 13a10 10 0 0 0 14.66 0" />
+          <path d="M20 18v2a2 2 0 0 1-2 2h-2" />
+          <path d="M13 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" />
+          <path d="M13 11V6" />
+        </svg>
+      </div>
+      <span class="text-base font-semibold">AI 智能体时空智能平台</span>
+    </a>
+
+    <nav class="hidden items-center gap-1 md:flex">
+      <a href="/" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">首页</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">产品能力</a>
+      <a href="/#solutions" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">解决方案</a>
+      <a href="/#spatiotemporal" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">时空智能</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">设备管理</a>
+      <a href="/#cases" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">案例中心</a>
+      <a href="/#clients" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">关于我们</a>
+      <a href="/map" class="rounded-md px-3 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">地图可视化</a>
+    </nav>
+
+    <div class="hidden items-center gap-3 md:flex">
+      <span class="js-online inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-medium text-muted-foreground">
+        <span class="auth-dot"></span><span class="js-online-text">后端在线</span>
+      </span>
+      <div class="js-auth-guest flex items-center gap-2">
+        <a href="/login" class="rounded-md px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors">登录</a>
+        <a href="/login" class="rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90 transition-opacity">免费试用</a>
+      </div>
+      <div class="js-auth-user flex items-center gap-3" style="display:none">
+        <a href="/map" class="js-auth-name rounded-md px-4 py-2 text-sm font-medium text-foreground hover:bg-secondary transition-colors">用户名</a>
+        <button type="button" data-auth-logout class="cursor-pointer rounded-md px-4 py-2 text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">退出登录</button>
+      </div>
+    </div>
+
+    <button id="menu-btn" class="md:hidden p-2 text-foreground" aria-label="打开菜单">
+      <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <line x1="4" y1="7" x2="20" y2="7" /><line x1="4" y1="12" x2="20" y2="12" /><line x1="4" y1="17" x2="20" y2="17" />
+      </svg>
+    </button>
+  </div>
+
+  <div id="mobile-menu" class="hidden md:hidden border-t border-border bg-background px-4 py-4">
+    <nav class="flex flex-col gap-1">
+      <a href="/" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">首页</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">产品能力</a>
+      <a href="/#solutions" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">解决方案</a>
+      <a href="/#spatiotemporal" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">时空智能</a>
+      <a href="/#capabilities" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">设备管理</a>
+      <a href="/#cases" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">案例中心</a>
+      <a href="/#clients" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">关于我们</a>
+      <a href="/map" class="rounded-md px-3 py-2.5 text-sm font-medium text-muted-foreground hover:bg-secondary">地图可视化</a>
+    </nav>
+    <div class="js-online mt-4 inline-flex items-center gap-1.5 self-start rounded-full border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground">
+      <span class="auth-dot"></span><span class="js-online-text">后端在线</span>
+    </div>
+    <div class="js-auth-guest mt-3 flex flex-col gap-2">
+      <a href="/login" class="rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium">登录</a>
+      <a href="/login" class="rounded-md bg-primary px-4 py-2.5 text-center text-sm font-medium text-primary-foreground">免费试用</a>
+    </div>
+    <div class="js-auth-user mt-3 flex flex-col gap-2" style="display:none">
+      <a href="/map" class="js-auth-name rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium">用户名</a>
+      <button type="button" data-auth-logout class="cursor-pointer rounded-md border border-border px-4 py-2.5 text-center text-sm font-medium text-muted-foreground hover:bg-secondary">退出登录</button>
+    </div>
+  </div>
+</header>
+
+<!-- ===== 正文 ===== -->
+<div class="blueprint-grid pointer-events-none fixed inset-0 opacity-60"></div>
+<main class="relative mx-auto max-w-7xl px-4 pt-24 pb-20 md:px-8 md:pt-28">
+
+  <!-- 面包屑 + 标题 -->
+  <nav class="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+    <a href="/" class="text-muted-foreground hover:text-primary transition-colors">← 返回首页</a>
+    <span class="text-border">/</span>
+    <span class="font-medium">巡检报告</span>
+    <span class="inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs text-secondary-foreground">演示数据 · 单任务 task-001</span>
+  </nav>
+
+  <!-- 数据加载失败降级条：默认隐藏，JS 失败时切 display:block -->
+  <div id="degrade-box" class="mt-6 flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600" style="display:none">
+    <span id="degrade-msg">数据加载失败</span>
+    <button type="button" onclick="location.reload()" class="rounded-lg border border-red-200 bg-card px-3 py-1.5 text-xs font-medium text-red-600 hover:bg-red-100 transition-colors">重试</button>
+  </div>
+
+  <div class="mt-6 flex flex-col gap-1">
+    <h1 class="text-2xl font-semibold md:text-3xl">巡检报告</h1>
+    <p class="text-sm text-muted-foreground">
+      数据实时取自后端 <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs">/api/report</span> 与流式的
+      <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-xs">/api/report/stream</span>。当前数据集中只有 task-001 一个任务，故不做任务选择器。
+    </p>
+  </div>
+
+  <!-- RP1 生成卡：进度来自后端 SSE 的 progress 事件 -->
+  <section class="tech-card mt-5 rounded-2xl p-6 md:p-7">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <h2 class="flex items-center gap-2 text-base font-semibold">
+        <svg class="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3" /><path d="m6.3 6.3 2.1 2.1" /><path d="M3 12h3" /><path d="m18 6-2.1 2.1" /><path d="M21 12h-3" /><circle cx="12" cy="16" r="5" /><path d="M12 14v2l1 1" /></svg>
+        生成报告
+      </h2>
+      <div class="flex items-center gap-3">
+        <span id="rp-msg" class="text-xs text-muted-foreground">尚未生成</span>
+        <button type="button" id="rp-run" class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">生成巡检报告</button>
+      </div>
+    </div>
+    <ol id="rp-steps" class="mt-4 flex flex-wrap items-center gap-2"></ol>
+    <p class="mt-3 text-xs leading-relaxed text-muted-foreground">
+      进度取自后端 <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-[11px]">/api/report/stream</span> 的
+      <span class="font-mono text-[11px]">progress</span> 事件。后端当前这版生成器里没有 sleep/await，三步几乎同时到达，
+      所以进度是「如实瞬间点亮」——<span class="font-medium text-foreground">本页不做人为延时</span>去演出逐步推进的效果。
+    </p>
+  </section>
+
+  <div class="mt-5 grid gap-5 lg:grid-cols-2">
+    <!-- RP2 报告头 -->
+    <section class="tech-card rounded-2xl p-6 md:p-7">
+      <h2 class="flex items-center gap-2 text-base font-semibold">
+        <svg class="h-4 w-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="8" x="5" y="2" rx="2" /><path d="M2 17h20" /><path d="M6 17v-5" /><path d="M18 17v-5" /><circle cx="12" cy="12" r="0.5" /></svg>
+        报告概要
+      </h2>
+      <dl class="mt-5 space-y-3 text-sm">
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">任务 ID</dt>
+          <dd class="font-mono font-medium" id="rp-task">--</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">执行智能体</dt>
+          <dd class="inline-flex items-center gap-1.5 rounded-full bg-secondary px-2.5 py-0.5 font-mono text-xs text-secondary-foreground" id="rp-agent">--</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">任务开始<span class="ml-1 text-xs">（本地）</span></dt>
+          <dd class="tabular-nums font-mono text-xs" id="rp-start">--</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">任务结束<span class="ml-1 text-xs">（本地）</span></dt>
+          <dd class="tabular-nums font-mono text-xs" id="rp-end">--</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4 border-t border-border pt-3">
+          <dt class="text-muted-foreground">轨迹采样点</dt>
+          <dd class="font-medium tabular-nums" id="rp-pts">--</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4">
+          <dt class="text-muted-foreground">异常事件数</dt>
+          <dd class="font-medium tabular-nums text-primary" id="rp-count">--</dd>
+        </div>
+        <div class="flex items-center justify-between gap-4 border-t border-border pt-3">
+          <dt class="text-muted-foreground">报告生成时间<span class="ml-1 text-xs">（本地）</span></dt>
+          <dd class="tabular-nums font-mono text-xs" id="rp-at">--</dd>
+        </div>
+      </dl>
+      <p class="mt-4 text-xs leading-relaxed text-muted-foreground">事件明细见 <a href="/nodes" class="text-primary hover:underline">感知节点页</a>。</p>
+    </section>
+
+    <!-- RP3 结论 -->
+    <section class="tech-card rounded-2xl p-6 md:p-7">
+      <h2 class="flex items-center gap-2 text-base font-semibold">
+        <svg class="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 7V3a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-4" /><path d="M17 7l4 4-8 8-4 1 1-4z" /><path d="M20.5 10.5 17 7" /></svg>
+        巡检结论
+      </h2>
+      <p class="mt-5 text-sm leading-relaxed" id="rp-conclusion">--</p>
+      <p class="mt-4 text-xs leading-relaxed text-muted-foreground">
+        该结论由后端 <span class="font-mono text-[11px]">AI 智能体（DeepSeek）</span> 生成。
+      </p>
+    </section>
+  </div>
+
+  <!-- RP4 异常类型分布 -->
+  <section class="tech-card mt-5 rounded-2xl p-6 md:p-7">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="flex items-center gap-2 text-base font-semibold">
+        <svg class="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18" /><path d="M7 15l4-5 4 3 5-7" /></svg>
+        异常类型分布
+      </h2>
+      <span class="rounded-full bg-secondary px-2.5 py-1 text-xs text-secondary-foreground">颜色沿用全站事件类型配色，数值另以文字直标</span>
+    </div>
+    <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3" id="rp-type-bars">
+      <p class="text-sm text-muted-foreground">尚未生成报告</p>
+    </div>
+    <p class="mt-4 text-xs text-muted-foreground">下方「异常事件清单」是本图的无障碍等价物，含逐条明细。</p>
+  </section>
+
+  <!-- RP5 异常事件清单 -->
+  <section class="tech-card mt-5 rounded-2xl p-6 md:p-7">
+    <div class="flex flex-wrap items-center justify-between gap-2">
+      <h2 class="flex items-center gap-2 text-base font-semibold">
+        <svg class="h-4 w-4 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" /><path d="M12 9v4" /><path d="M12 17h.01" /></svg>
+        异常事件清单
+      </h2>
+      <span class="rounded-full bg-secondary px-2.5 py-1 text-xs text-secondary-foreground" id="rp-ev-count">共 -- 起</span>
+    </div>
+    <p class="mt-1 text-xs text-muted-foreground">时间均为本地时区；结论里引用的 EVT-xxx 即本表第一列</p>
+    <div class="mt-4 overflow-x-auto">
+      <table class="w-full min-w-[720px] border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-border text-left text-xs text-muted-foreground">
+            <th class="py-2 pr-4 font-medium">事件 ID</th>
+            <th class="py-2 pr-4 font-medium">本地时间</th>
+            <th class="py-2 pr-4 font-medium">类型</th>
+            <th class="py-2 pr-4 font-medium">置信度</th>
+            <th class="py-2 pr-4 font-medium">坐标</th>
+            <th class="py-2 font-medium">状态</th>
+          </tr>
+        </thead>
+        <!-- 本页载入时不拉数据（生成是用户触发的动作），故初始态写「尚未生成」而不是「加载中…」
+             —— 后者在后端离线时会永远停在那里，是一句假话。report.js 探完 /api/health 会改写它。 -->
+        <tbody id="rp-table"><tr><td colspan="6" class="py-6 text-muted-foreground">尚未生成报告，点上方「生成巡检报告」开始</td></tr></tbody>
+      </table>
+    </div>
+    <p class="mt-4 text-xs leading-relaxed text-muted-foreground">
+      演示数据集的局限（与前几页口径一致）：8 条事件的现场图 <span class="font-mono text-[11px]">image_path</span> 全部指向同一张
+      <span class="font-mono text-[11px]">data/images/placeholder.jpg</span>，状态全部为「待处理」，
+      处置/确认流程在当前数据里是空态。页面不为此编造数据。
+    </p>
+  </section>
+
+</main>
+
+<!-- ===== 页脚 ===== -->
+<footer class="relative border-t border-border bg-background py-12">
+  <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-4 md:flex-row md:px-8">
+    <div class="flex items-center gap-2">
+      <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+        <svg class="h-4 w-4 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19.07 4.93A10 10 0 0 0 6.99 3.34" /><path d="M4 6V4a2 2 0 0 1 2-2h2" /><path d="M5 11.07 3.34 13a10 10 0 0 0 14.66 0" /><path d="M20 18v2a2 2 0 0 1-2 2h-2" /><path d="M13 11a2 2 0 1 1-4 0 2 2 0 0 1 4 0Z" /><path d="M13 11V6" /></svg>
+      </div>
+      <span class="text-sm font-semibold">AI 智能体时空智能平台</span>
+    </div>
+    <p class="text-xs text-muted-foreground">© 2026 AI 智能体时空智能平台 · 园区地面智能巡检</p>
+    <div class="flex items-center gap-5 text-sm text-muted-foreground">
+      <a href="/#capabilities" class="hover:text-primary transition-colors">产品能力</a>
+      <a href="/#cases" class="hover:text-primary transition-colors">案例中心</a>
+      <a href="/login" class="hover:text-primary transition-colors">登录</a>
+    </div>
+  </div>
+</footer>
+
+<!-- 页面数据逻辑全在 report.js：降级条的 fail()/ok()/heal() 与请求同处一个文件，
+     不做「模板里先定义、外部脚本再取用」的跨文件握手（那会引入加载顺序依赖）。
+     #degrade-box 这个 DOM 标准件仍留在本模板里。 -->
+<script src="{{ url_for('static', filename='js/report.js') }}"></script>
+{% endblock %}

@@ -212,6 +212,33 @@
         <p class="mt-3 text-xs text-muted-foreground">demo 识别事件 8 起；柱长 = 该类型占比</p>
         <div id="cb-p3" class="mt-3 text-sm text-muted-foreground">数据加载中…</div>
       </div>
+
+      <!-- 实机推理演示：POST /api/detect（后端 B 模块 perception/detect.py，真 YOLOv8n）。
+           注意本块必须放在 #cb-p3 **外面** —— 那个节点每次载入都会被 wipe() 清空。 -->
+      <div class="mt-4 rounded-xl bg-secondary/50 p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-sm font-medium">实机推理 · YOLO 视觉检测</p>
+          <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">POST /api/detect</span>
+        </div>
+
+        <div id="dt-picker" class="mt-3 flex flex-wrap gap-2">
+          <span class="text-xs text-muted-foreground">图片列表加载中…</span>
+        </div>
+
+        <div class="mt-3 flex flex-wrap items-center gap-3">
+          <button type="button" id="dt-run" class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">开始检测</button>
+          <span id="dt-msg" class="text-xs text-muted-foreground">选一张图，调后端实机推理</span>
+        </div>
+
+        <div id="dt-result" class="mt-3"></div>
+
+        <p class="mt-3 text-[10px] leading-relaxed text-muted-foreground/70">
+          诚实口径：结果来自 <span class="font-mono">perception/detect.py</span> 的 YOLOv8n 通用模型，返回的是
+          <b>COCO 80 类</b>名称（person / bus / traffic light …），并非本平台的事件类型枚举
+          （smoke / fire / no_helmet / intrusion / equipment_abnormal）—— 两者是两套体系，专用巡检模型训练好后再对齐。
+          空结果也有歧义：模型不可用与画面内无目标，后端都返回空列表，本页无法区分。
+        </p>
+      </div>
     </div>
   </section>
 
@@ -236,6 +263,34 @@
           <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">/api/trajectory</span>
         </div>
         <div id="cb-p4" class="mt-4 text-sm text-muted-foreground">数据加载中…</div>
+      </div>
+
+      <!-- 实机规划演示：POST /api/plan（后端 C 模块 spatiotemporal/planning.py，贪心 + 2-opt）。
+           同样放在 #cb-p4 **外面**（那个节点每次载入都会被 wipe() 清空）。 -->
+      <div class="mt-4 rounded-xl bg-secondary/50 p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-sm font-medium">实机规划 · 巡检路线</p>
+          <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">POST /api/plan</span>
+        </div>
+
+        <div class="mt-3 flex flex-wrap items-center gap-2">
+          <label for="pl-start" class="text-xs text-muted-foreground">起点</label>
+          <select id="pl-start" class="rounded-lg border border-border bg-card px-2 py-1.5 text-xs text-foreground">
+            <option value="">巡检点加载中…</option>
+          </select>
+          <button type="button" id="pl-run" class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">生成巡检路线</button>
+          <span id="pl-msg" class="text-xs text-muted-foreground"></span>
+        </div>
+
+        <div id="pl-result" class="mt-3"></div>
+
+        <div id="pl-map" class="mt-3 w-full overflow-hidden rounded-xl border border-border bg-secondary/50" style="height:380px; display:none"></div>
+
+        <p class="mt-3 text-[10px] leading-relaxed text-muted-foreground/70">
+          诚实口径：路线由 <span class="font-mono">spatiotemporal/planning.py</span> 的「最近邻贪心 + 2-opt」
+          实机计算，返回顺序即访问顺序；总里程含「起点 → 首站」那一段。地图虚线与序号＝规划路线（开口巡回，
+          不回到起点），与轨迹实线是两回事。
+        </p>
       </div>
     </div>
   </section>
@@ -281,6 +336,20 @@
         <div class="mt-4 border-t border-border pt-3">
           <p class="text-xs text-muted-foreground">事件处置状态分布</p>
           <div id="cb-p5" class="mt-3 text-sm text-muted-foreground">数据加载中…</div>
+        </div>
+      </div>
+
+      <!-- 报告入口。★ 必须放在 #cb-p5 之外：cb-p5 每次载入被 wipe() 清空，
+           且 fail() 会把它的内容整体换成一句离线文案，卡片放进去会被一并抹掉。 -->
+      <div class="mt-4 rounded-xl bg-secondary/50 p-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <p class="text-sm font-medium">巡检报告</p>
+          <span class="rounded bg-secondary px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground">/api/report + SSE</span>
+        </div>
+        <p class="mt-2 text-xs leading-relaxed text-muted-foreground">汇总任务总结与全部异常事件并给出结论文本，支持流式生成进度。</p>
+        <div class="mt-3 flex flex-wrap items-center gap-3">
+          <a id="cb-rp-link" href="/report" class="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">生成巡检报告 →</a>
+          <span id="cb-rp-msg" class="text-xs text-muted-foreground">报告依赖后端数据，离线时无法生成</span>
         </div>
       </div>
     </div>
@@ -370,6 +439,21 @@
       if (n) n.textContent = '--';
     });
     if (mapBox) { mapBox.innerHTML = ''; mapBox.textContent = msg; }
+    // 两个实机演示面板：只做面板内行内提示。检测按钮保持可点（点了才能拿到准确的
+    // 失败原因），规划器没有巡检点则必须置灰（否则会「成功」返回 0 m）。
+    A.setText('dt-msg', '后端离线，检测不可用');
+    A.setText('pl-msg', '后端离线，拿不到巡检点，无法规划');
+    var pRun = document.getElementById('pl-run');
+    if (pRun) pRun.disabled = true;
+    // 报告入口是 <a>：没有 disabled 属性，去掉 href 才是真禁用（只改样式仍能点进去）
+    var rpLink = document.getElementById('cb-rp-link');
+    if (rpLink) {
+      rpLink.removeAttribute('href');
+      rpLink.setAttribute('aria-disabled', 'true');
+      rpLink.style.pointerEvents = 'none';
+      rpLink.style.opacity = '0.5';
+    }
+    A.setText('cb-rp-msg', '后端离线，报告无法生成');
     if (offNote) offNote.style.display = 'flex';
     heal();
   }
@@ -408,6 +492,295 @@
     var n = document.getElementById(id);
     while (n.firstChild) n.removeChild(n.firstChild);
     return n;
+  }
+  // wipe 的 null 安全版：新面板的容器可能不存在，不该为这个抛错
+  function wipeInto(node) {
+    if (node) while (node.firstChild) node.removeChild(node.firstChild);
+    return node;
+  }
+
+  // 信封 → 人话。实现已提到 api.js（A.errText），/report 页共用同一份；
+  // 这里只留个别名，加分支请改 api.js，不要在页面里再抄一遍。
+  var errText = A.errText;
+
+  /* ================= 实机视觉检测（POST /api/detect · B 感知模块） ================= */
+
+  // 检测框统一一色。底色是任意照片＝全配对场景，参考调色板只有前 3 个色位能过
+  // 全配对校验；而「按出现顺序分色位」又违反「颜色跟随实体而非排名」。故颜色不承担
+  // 类别编码，类别由框上直标文字 + 下方表格承载。#2a78d6 对白底 4.46:1。
+  var DET_BOX = '#2a78d6';
+
+  // 按文件名的如实说明（缺项用文件名兜底）。4 个条目实为 3 张图，别让条目数冒充图数。
+  var IMG_NOTE = {
+    'AIbus.jpg': '交通场景：公交 + 行人 + 红绿灯（目标最多，建议先看这张）',
+    'bus_test.jpg': '公交与行人',
+    'placeholder.jpg': '与 bus_test.jpg 是同一张图（后端事件表用的占位现场图）',
+    'hello_perception.jpg': '纯黑空白样张（负样本，预期 0 检出）'
+  };
+
+  function initDetect() {
+    var picker = document.getElementById('dt-picker');
+    var runBtn = document.getElementById('dt-run');
+    var msg = document.getElementById('dt-msg');
+    var result = document.getElementById('dt-result');
+    if (!picker || !runBtn || !msg || !result) return;   // 本页没有这块就不管（自守卫）
+
+    var images = [];
+    var selected = null;
+
+    function renderPicker() {
+      wipeInto(picker);
+      images.forEach(function (im) {
+        var on = selected && im.name === selected.name;
+        var btn = el('button', 'flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-xs transition-colors ' +
+          (on ? 'border-primary bg-card text-foreground'
+              : 'border-border bg-card/60 text-muted-foreground hover:bg-card'));
+        btn.type = 'button';
+        btn.title = IMG_NOTE[im.name] || im.name;
+        var thumb = document.createElement('img');
+        thumb.src = im.src;          // 必须用 src（本站 /media 路由）；path 是给 POST 的
+        thumb.alt = im.name;
+        thumb.loading = 'lazy';
+        thumb.className = 'h-8 w-12 rounded object-cover';
+        btn.appendChild(thumb);
+        btn.appendChild(el('span', 'font-mono', im.name));
+        btn.addEventListener('click', function () {
+          selected = im;
+          renderPicker();
+          msg.textContent = IMG_NOTE[im.name] || im.name;
+        });
+        picker.appendChild(btn);
+      });
+    }
+
+    // 图列表来自 Flask（/media/images），与后端 8000 无关：8000 挂了选图条也照常渲染
+    A.apiGet('/media/images').then(function (r) {
+      images = (r.ok && r.data) || [];
+      if (!images.length) {
+        wipeInto(picker);
+        picker.appendChild(el('span', 'text-xs text-muted-foreground', 'data/images 下暂无可用图片'));
+        return;
+      }
+      images.forEach(function (im) { if (!selected && im.name === 'AIbus.jpg') selected = im; });
+      if (!selected) selected = images[0];
+      renderPicker();
+    });
+
+    runBtn.addEventListener('click', function () {
+      if (!selected || runBtn.disabled) return;
+      runBtn.disabled = true;
+      runBtn.textContent = '推理中…';
+      msg.textContent = '正在调后端推理（首次需加载 YOLO 模型，约 4~10 秒）…';
+      wipeInto(result);
+      A.apiPost('/api/detect', { image_path: selected.path }).then(function (r) {
+        runBtn.disabled = false;
+        runBtn.textContent = '开始检测';
+        if (!r.ok) { msg.textContent = errText(r, '检测失败'); return; }
+        msg.textContent = IMG_NOTE[selected.name] || selected.name;
+        renderDetect(r.data || {});
+      });
+    });
+
+    function renderDetect(data) {
+      wipeInto(result);
+      var dets = data.detections || [];
+
+      var box = el('div', 'relative overflow-hidden rounded-xl border border-border bg-card');
+      var img = document.createElement('img');
+      img.className = 'block h-auto w-full';   // display:block：行内图片的基线间隙会让框整体偏移
+      img.alt = (selected && selected.name) || '检测图片';
+      var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'absolute inset-0 h-full w-full');
+      box.appendChild(img);
+      box.appendChild(svg);
+      result.appendChild(box);
+
+      // 先挂 load 再赋 src：命中缓存时 load 可能早于监听器注册
+      img.addEventListener('load', function () {
+        drawBoxes(svg, dets, img.naturalWidth, img.naturalHeight);
+      });
+      img.src = (selected && selected.src) || '';
+
+      if (!dets.length) {
+        result.appendChild(el('p', 'mt-3 rounded-lg bg-card px-3 py-2 text-xs text-muted-foreground',
+          '未检出目标 —— 注意后端在「模型不可用」与「画面里确实没有目标」两种情况下返回的都是空列表，本页无法区分。'));
+        return;
+      }
+
+      var counts = {};
+      dets.forEach(function (d) { counts[d.class_name] = (counts[d.class_name] || 0) + 1; });
+      var chipRow = el('div', 'mt-3 flex flex-wrap gap-2');
+      Object.keys(counts).sort().forEach(function (k) {
+        chipRow.appendChild(chip(
+          'inline-flex items-center rounded-full bg-card px-2.5 py-0.5 text-xs text-muted-foreground',
+          null, k + ' × ' + counts[k]));
+      });
+      result.appendChild(chipRow);
+
+      // 无障碍等价物：表格里每个框的数值都读得到，不依赖图像
+      var tbl = el('table', 'mt-3 w-full border-collapse text-sm');
+      var thead = el('thead');
+      var thr = el('tr', 'border-b border-border text-left text-xs text-muted-foreground');
+      ['#', '类别', '置信度', 'bbox（左上 x, y · 右下 x, y）'].forEach(function (t) {
+        thr.appendChild(el('th', 'py-1.5 pr-3 font-medium', t));
+      });
+      thead.appendChild(thr); tbl.appendChild(thead);
+      var tb = el('tbody');
+      dets.forEach(function (d, i) {
+        var tr = el('tr', 'border-b border-border');
+        tr.appendChild(el('td', 'py-2 pr-3 tabular-nums text-xs text-muted-foreground', String(i + 1)));
+        tr.appendChild(el('td', 'py-2 pr-3 font-mono text-xs', d.class_name));
+        tr.appendChild(el('td', 'py-2 pr-3 tabular-nums text-xs', A.fmtNum(d.confidence, 2)));
+        tr.appendChild(el('td', 'py-2 pr-3 font-mono text-xs text-muted-foreground',
+          (d.bbox || []).join(', ')));
+        tb.appendChild(tr);
+      });
+      tbl.appendChild(tb);
+      result.appendChild(tbl);
+    }
+
+    // 画框：viewBox 直接用原图像素。AIbus.jpg 是 2848×1600，缩进 ~600px 栏宽后普通
+    // stroke-width:2 只剩 0.4px —— 必须 non-scaling-stroke 才看得见。
+    function drawBoxes(svg, dets, W, H) {
+      if (!W || !H) return;
+      var NS = 'http://www.w3.org/2000/svg';
+      svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+      var fs = Math.max(11, Math.round(W * 0.016));   // 字号随原图宽度走，缩放后视觉大小稳定
+      dets.forEach(function (d) {
+        var b = d.bbox || [];
+        if (b.length !== 4) return;
+        var rect = document.createElementNS(NS, 'rect');
+        rect.setAttribute('x', b[0]); rect.setAttribute('y', b[1]);
+        rect.setAttribute('width', Math.max(1, b[2] - b[0]));
+        rect.setAttribute('height', Math.max(1, b[3] - b[1]));
+        rect.setAttribute('fill', 'none');
+        rect.setAttribute('stroke', DET_BOX);
+        rect.setAttribute('stroke-width', '2');
+        rect.setAttribute('vector-effect', 'non-scaling-stroke');
+        svg.appendChild(rect);
+
+        var t = document.createElementNS(NS, 'text');
+        t.setAttribute('x', b[0] + fs * 0.35);
+        t.setAttribute('y', b[1] + fs * 1.05);   // 贴框内左上角，不越出图片边界
+        t.setAttribute('font-size', fs);
+        t.setAttribute('font-weight', '600');
+        t.setAttribute('fill', DET_BOX);
+        t.setAttribute('paint-order', 'stroke'); // 先描白边再填字：照片上不用底色块也读得清
+        t.setAttribute('stroke', '#ffffff');
+        t.setAttribute('stroke-width', fs * 0.22);
+        t.setAttribute('stroke-linejoin', 'round');
+        t.textContent = d.class_name + ' ' + A.fmtNum(d.confidence, 2);
+        svg.appendChild(t);
+      });
+    }
+  }
+
+  /* ================= 实机路径规划（POST /api/plan · C 时空智能模块） ================= */
+
+  // Leaflet 实例：清 innerHTML 不会清容器的 _leaflet_id，重复 L.map() 会抛
+  // "Map container is already initialized" —— 每次规划前必须先 remove()。
+  var plMap = null;
+
+  function initPlanner(pts, traj, feats) {
+    var sel = document.getElementById('pl-start');
+    var runBtn = document.getElementById('pl-run');
+    var msg = document.getElementById('pl-msg');
+    var result = document.getElementById('pl-result');
+    var mapEl = document.getElementById('pl-map');
+    if (!sel || !runBtn || !msg || !result) return;
+
+    var byId = {};
+    pts.forEach(function (p) { byId[p.id] = p; });
+
+    // 起点候选。默认「机器人当前位置」＝ task-001 轨迹首点，且**不在** points 里 ——
+    // 正是 docs/api.md 的用法（起点独立于巡检点）。
+    var opts = [];
+    if (traj && traj.track && traj.track.length) {
+      opts.push({
+        v: '__home__', label: '机器人当前位置（task-001 起点）',
+        start: { id: 'drone-01-current', lng: traj.track[0].lng, lat: traj.track[0].lat }
+      });
+    }
+    opts.push({ v: '', label: '不指定起点（从第一个巡检点出发）', start: null });
+    pts.forEach(function (p) {
+      opts.push({ v: p.id, label: p.id + ' ' + (p.name || ''), start: { id: p.id, lng: p.lng, lat: p.lat } });
+    });
+
+    wipeInto(sel);
+    opts.forEach(function (o) {
+      var op = document.createElement('option');
+      op.value = o.v; op.textContent = o.label;
+      sel.appendChild(op);
+    });
+
+    if (!pts.length) {           // /api/map 没给巡检点：别让按钮「成功」返回 0 m
+      runBtn.disabled = true;
+      msg.textContent = '没有巡检点数据，无法规划';
+      return;
+    }
+
+    runBtn.addEventListener('click', function () {
+      if (runBtn.disabled) return;
+      var chosen = opts[0];
+      opts.forEach(function (o) { if (o.v === sel.value) chosen = o; });
+
+      var body = { points: pts.map(function (p) { return { id: p.id, lng: p.lng, lat: p.lat }; }) };
+      if (chosen && chosen.start) body.start = chosen.start;   // 不选起点就不传 start 键
+
+      runBtn.disabled = true;
+      runBtn.textContent = '规划中…';
+      msg.textContent = '';
+      A.apiPost('/api/plan', body).then(function (r) {
+        runBtn.disabled = false;
+        runBtn.textContent = '生成巡检路线';
+        if (!r.ok) { msg.textContent = errText(r, '路径规划失败'); return; }
+        renderPlan(r.data || {}, chosen ? chosen.start : null);
+      });
+    });
+
+    function renderPlan(data, start) {
+      wipeInto(result);
+      var route = data.route || [];
+      var distM = Number(data.total_distance_m) || 0;
+
+      // 画线与序号用同一条序列：[起点] + route。只画 route 会漏掉「起点→首站」那段，
+      // 而总里程是含那一段的（已实测：这样画与 total_distance_m 逐位吻合）。
+      // 起点本身是某个巡检点时，服务端返回的 route 首位会是同一个点（贪心先选中它自己，
+      // order 里重复一次，零长段）—— 折叠相邻重复，序号才与地图标记一一对应。
+      var seq = (start ? [start] : []).concat(route.map(function (id) {
+        var p = byId[id];
+        return { id: id, lng: p ? p.lng : null, lat: p ? p.lat : null, name: p ? p.name : id };
+      })).filter(function (p, i, arr) { return i === 0 || p.id !== arr[i - 1].id; });
+
+      var head = el('div', 'flex flex-wrap items-baseline gap-x-2 gap-y-1');
+      head.appendChild(el('span', 'text-xs text-muted-foreground', '总里程'));
+      head.appendChild(el('span', 'text-lg font-semibold tabular-nums text-primary', A.fmtNum(distM / 1000, 3)));
+      head.appendChild(el('span', 'text-xs text-muted-foreground', 'km'));
+      head.appendChild(el('span', 'text-xs text-muted-foreground', '· ' + seq.length + ' 站'));
+      if (start) head.appendChild(el('span', 'text-xs text-muted-foreground', '· 含起点'));
+      result.appendChild(head);
+
+      var chain = el('div', 'mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1.5 text-xs');
+      seq.forEach(function (p, i) {
+        if (i) chain.appendChild(el('span', 'text-muted-foreground/60', '→'));
+        chain.appendChild(chip(
+          'inline-flex items-center gap-1.5 rounded-full bg-card px-2.5 py-0.5 ' +
+          (i === 0 && start ? 'font-medium text-primary' : 'text-muted-foreground'),
+          i === 0 && start ? '#0e8a8a' : null,
+          (i + 1) + '. ' + (p.name || p.id)));
+      });
+      result.appendChild(chain);
+
+      var mapSeq = seq.filter(function (p) { return p.lng != null && p.lat != null; });
+      if (mapEl) {
+        // 容器必须在可见状态下建图（仓库里没有任何 invalidateSize 调用）
+        mapEl.style.display = 'block';
+        if (plMap) { plMap.remove(); plMap = null; }
+        mapEl.innerHTML = '';
+        plMap = A.buildMap('pl-map', { features: feats, route: mapSeq });
+        if (!plMap) mapEl.textContent = '地图组件加载失败（需要联网加载 Leaflet）；上方顺序与里程不受影响。';
+      }
+    }
   }
 
   Promise.all([
@@ -582,7 +955,16 @@
       var map = A.buildMap('map-cap6', { features: feats, track: track, events: events });
       if (!map) mapBox.textContent = '地图组件加载失败（需要联网加载 Leaflet）';
     }
+
+    // ---- cap-4 实机规划演示：需要 pts/traj，所以挂在这里；用 try/catch 单独兜住 ——
+    // 挂在链上任何一处抛错都会被 .catch 报成「后端离线」，把上面的真数据面板一起清掉
+    try { initPlanner(pts, traj.data, feats); }
+    catch (e) { console.error('路径规划演示初始化失败（不影响上方数据面板）', e); }
   }).catch(function () { fail(); });
+
+  // 检测演示与这三个接口无关（图列表来自 Flask 的 /media/images），独立启动：
+  // 挂在上面那条链上会被 .catch 报成「后端离线」，也会被 fail() 一起清掉
+  try { initDetect(); } catch (e) { console.error('视觉检测演示初始化失败', e); }
 })();
 </script>
 {% endblock %}
