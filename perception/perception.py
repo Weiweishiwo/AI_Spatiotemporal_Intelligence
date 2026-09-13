@@ -68,6 +68,7 @@ if __name__ == "__main__":
         target = IMAGE_DIR
     if not target.exists():# 路径不存在 → 报错退出
         print(f'找不到:{target}')
+
         sys.exit(1)
     if target.is_dir():  # 是目录 → 翻目录全检
         detect_folder(target)
