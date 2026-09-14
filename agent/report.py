@@ -88,7 +88,8 @@ def generate_conclusion(events, traj):
             args = json.loads(tool_call.function.arguments)
 
             if name == "query_events":
-                result = query_events(events, event_type=args.get("event_type"))
+                result = query_events(events, event_type=args.get("event_type"),
+                                      min_confidence=args.get("min_confidence"))
             elif name == "query_trajectory":
                 result = query_trajectory(traj, task_id=args.get("task_id"))
             else:

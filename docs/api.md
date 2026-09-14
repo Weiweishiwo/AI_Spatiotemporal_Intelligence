@@ -153,7 +153,9 @@ Body（`application/json`）：
 
 ### WebSocket `/ws/track`（已实现，D 后端）
 
-轨迹实时回放，前端（E）第 3 周接入。
+轨迹实时回放通道。**前端接入现状**：E 模块的回放已用 `/api/trajectory`
+一次性拉全量 + 前端本地动画实现（能拖进度/倍速/暂停）；本 WebSocket 作为
+「真机实时飞行、数据持续流」场景的**预留通道**，当前仿真阶段前端未接入。
 
 | 参数 | 类型 | 必填 | 说明 |
 |---|---|---|---|
@@ -180,7 +182,7 @@ Body（`application/json`）：
 （巡检点 / 事件 / 轨迹点落库，事件与巡检点带 `POINT(4326)` 空间列 + 空间索引；
 首次启动自动从 `data/` 灌样例，接口返回结构与 JSON 数据源一致）。
 连不上库自动回退 JSON，接口签名不变。空间查询演示：`nearby_events(lng, lat, radius_m)`
-（`ST_DistanceSphere` 附近事件），供后续「附近巡检点 / 轨迹相交」类接口复用。
+（`ST_Distance_Sphere` 附近事件），供后续「附近巡检点 / 轨迹相交」类接口复用。
 ### Auth（新增，未冻结；改动仍需全组同步）— E 模块接入，账号存 JSON
 
 统一信封与错误码同上。会话用 `Authorization: Bearer <token>` 请求头。

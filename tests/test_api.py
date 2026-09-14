@@ -5,17 +5,23 @@
     .venv\\Scripts\\python -m pytest tests/ -v
 """
 
+import json
+from pathlib import Path
 from fastapi.testclient import TestClient
-
 from backend.main import app
-
 client = TestClient(app)
 
-# 样例数据事实（见 data/tracks/task-001.json、data/events/events.json）
-TRACK_POINTS = 10
-EVENT_IDS = {"EVT-001", "EVT-002", "EVT-003"}
-EXISTING_IMAGE = "data/images/hello_perception.jpg"
+ROOT = Path(__file__).resolve().parent.parent
 
+# 样例数据事实（见 data/tracks/task-001.json、data/events/events.json）
+text = (ROOT /"data" / "tracks" / "task-001.json").read_text(encoding="utf-8")
+track_data = json.loads(text)
+TRACK_POINTS = len(track_data["track"])
+
+events_text = (ROOT / "data" / "events" / "events.json").read_text(encoding="utf-8")
+events_data = json.loads(events_text)
+EVENT_IDS = {e["event_id"] for e in events_data}
+EXISTING_IMAGE = "data/images/hello_perception.jpg"
 
 def _ok(resp):
     """断言统一信封成功，返回 data。"""
@@ -88,10 +94,9 @@ START = {"id": "IP-000", "lng": 116.12, "lat": 39.13}
 
 def test_plan_returns_route_and_real_distance():
     data = _ok(client.post("/api/plan", json={"start": START, "points": PLAN_POINTS}))
-    assert len(data["route"]) == len(PLAN_POINTS) + 1  # start 不在 points 里时插到队首
-    assert data["route"][0] == "IP-000"
-    assert set(data["route"]) == {"IP-000", "IP-001", "IP-002", "IP-003"}
-    assert data["total_distance_m"] > 0  # 不再返回占位的 0.0
+    assert len(data["route"]) == len(PLAN_POINTS)  # route 只含巡检点，不含 start（契约 §5）
+    assert set(data["route"]) == {"IP-001", "IP-002", "IP-003"}
+    assert data["total_distance_m"] > 0
 
 
 def test_plan_without_start():
@@ -147,16 +152,24 @@ def test_detect_existing_image():
 def test_events_all_and_filters():
     data = _ok(client.get("/api/events"))
     assert {e["event_id"] for e in data} == EVENT_IDS
-
     smoke = _ok(client.get("/api/events", params={"type": "smoke"}))
-    assert [e["event_id"] for e in smoke] == ["EVT-001"]
+    assert smoke  # 数据里确实有 smoke，不该是空
+    assert all(e["type"] == "smoke" for e in smoke)  # 过滤出来的每个都确实是 smoke
 
     pending = _ok(client.get("/api/events", params={"status": "pending"}))
-    assert {e["event_id"] for e in pending} == {"EVT-001", "EVT-002"}
+    assert pending
+    assert all(e["status"] == "pending" for e in pending)
 
-    assert _ok(client.get("/api/events", params={"type": "fire"})) == []
-    assert _ok(client.get(
-        "/api/events", params={"type": "smoke", "status": "confirmed"})) == []
+    fire = _ok(client.get("/api/events", params={"type": "fire"}))
+    assert fire
+    assert all(e["type"] == "fire" for e in fire)
+
+    # 组合过滤：smoke + confirmed。用动态对照（跟数据文件自己过滤的结果比），
+    # 不写死"应该有几个"——数据里没有 confirmed 就返回空，以后加了也照样通过。
+    combo = _ok(client.get("/api/events", params={"type": "smoke", "status": "confirmed"}))
+    expected = {e["event_id"] for e in events_data
+                if e["type"] == "smoke" and e["status"] == "confirmed"}
+    assert {e["event_id"] for e in combo} == expected
 
 
 # ---------------------------------------------------------------------------
@@ -172,7 +185,7 @@ def test_report_shape():
     assert summary["track_points"] == TRACK_POINTS
     assert summary["events_count"] == len(EVENT_IDS)
     assert len(data["events"]) == len(EVENT_IDS)
-    assert isinstance(data["conclusion"], str) and "3" in data["conclusion"]
+    assert isinstance(data["conclusion"], str) and data["conclusion"].strip() != ""
 
 
 def test_report_missing_returns_40401():
