@@ -353,7 +353,37 @@
     }).addTo(map);
 
     // 园区视图的"底图块"单独装一层：切到全国视图时整层摘掉
-    var campusLayer = L.layerGroup().addTo(map);
+    // 必须用 featureGroup：setView('campus') 要靠 getBounds() 取景，
+    // 而 layerGroup 没有这个方法（会抛 TypeError，导致切回园区时地图不重新取景）
+    var campusLayer = L.featureGroup().addTo(map);
+
+    // 巡检点清单的数据与 marker —— 必须放在模块级：
+    // 左栏那个 <ul id="ptList"> 被"全国站点"和"巡检点清单"两套内容共用，
+    // 切回园区时要用这些数据把清单重建出来（原来存在 drawBaseMap 内部，切走就丢了）
+    var campusList = [];       // [{id, name, color}]
+    var pointMarkers = {};     // {id: circleMarker}
+
+    // 巡检点清单的一行：点一下，地图平滑飞过去并弹出信息
+    function makePointLi(id, name, color) {
+      var li = document.createElement('li');
+      li.innerHTML = '<span class="dot" style="background:' + color + '"></span>' + id + ' ' + name;
+      li.onclick = function () {
+        var m = pointMarkers[id];
+        if (!m) { return; }          // 数据还没到时不报错
+        map.flyTo(m.getLatLng(), 16);   // 16 = 飞过去后的放大级别
+        m.openPopup();
+      };
+      return li;
+    }
+
+    // 重建"巡检点清单"（和全国视图那边的 renderSiteList 对称，共用同一个 <ul>）
+    function renderPointList() {
+      var ul = document.getElementById('ptList');
+      ul.innerHTML = '';
+      campusList.forEach(function (it) {
+        ul.appendChild(makePointLi(it.id, it.name, it.color));
+      });
+    }
 
     // 当前视图：'campus' 园区 / 'china' 全国
     // （异步回调里要判断它，否则后端数据晚到会把全国视图又拽回园区取景）
@@ -378,8 +408,12 @@
     // 画园区底图（把原来 ③④⑤"加载时一次画完"的逻辑收成函数，等拿到数据再画）
     function drawBaseMap(features) {
       var allLatLngs = [];     // 收集所有坐标，用来让地图"自动取景"
-      var pointMarkers = {};   // 记住每个巡检点的 marker，点清单要用
+      // 重画前清空：本函数可能被调两次（后端失败→兜底样例），不清会累积重复项
+      pointMarkers = {};
+      campusList = [];
       var PRIORITY_COLORS = { 1: '#d0342c', 2: '#f0a020', 3: '#2f7bd0' }; // 红=最重要
+      // 本页是独立静态页（不加载 api.js），这份中文表要和 api.js 的 PRIORITY_CN 保持一致
+      var PRIORITY_CN = { 1: '一级重点', 2: '二级重点', 3: '三级重点' };
 
       features.forEach(function (f) {
         var p = f.properties;          // 属性：kind / name / id ...
@@ -405,7 +439,7 @@
             radius: 9, color: '#fff', weight: 2,
             fillColor: color, fillOpacity: 0.95
           }).addTo(campusLayer).bindPopup(
-            '<b>' + p.id + ' ' + p.name + '</b><br>优先级：' + p.priority
+            '<b>' + p.id + ' ' + p.name + '</b><br>优先级：' + (PRIORITY_CN[p.priority] || p.priority)
           );
           pointMarkers[p.id] = m;
           allLatLngs.push([g.coordinates[1], g.coordinates[0]]);
@@ -415,15 +449,9 @@
 
       // ④ 左侧巡检点清单：点一下，地图平滑飞过去并弹出信息
       function addListItem(id, name, color) {
-        var li = document.createElement('li');
-        li.innerHTML = '<span class="dot" style="background:' + color + '"></span>' + id + ' ' + name;
-        li.onclick = function () {
-          var m = pointMarkers[id];
-          map.flyTo(m.getLatLng(), 16);   // 16 = 飞过去后的放大级别
-          m.openPopup();
-        };
+        campusList.push({ id: id, name: name, color: color });   // 记下来，切回园区时按它重建
         if (viewMode === 'campus') {   // 全国视图下左栏是站点清单，别混进巡检点
-          document.getElementById('ptList').appendChild(li);
+          document.getElementById('ptList').appendChild(makePointLi(id, name, color));
         }
       }
 
@@ -1005,13 +1033,17 @@
       document.getElementById('sideTitle').textContent = china ? '全国站点' : '巡检点清单';
 
       var mapEl = document.getElementById('map');
+      // 只切自己的 cn-mode，不能整个重写 className：
+      // Leaflet 初始化时往这个 div 上加了自己的 leaflet-container 等类，
+      // 抹掉会连带丢掉 .leaflet-container{overflow:hidden}，瓦片就溢出盖住左侧栏
+      mapEl.classList.toggle('cn-mode', china);
       if (china) {
-        mapEl.className = 'cn-mode';
         map.fitBounds(CHINA_BOUNDS, { padding: [20, 20] });
         renderSiteList();
       } else {
-        mapEl.className = '';
-        // 回园区：按园区范围重新取景；底图还没到手就先落在园区中心
+        // 回园区：左栏换回巡检点清单（数据没到就是空列表，至少不残留站点清单）
+        renderPointList();
+        // 按园区范围重新取景；底图还没到手就先落在园区中心
         if (campusLayer.getLayers().length) {
           map.fitBounds(campusLayer.getBounds(), { padding: [50, 50] });
         } else {
