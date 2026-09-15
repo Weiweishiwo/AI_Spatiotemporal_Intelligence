@@ -90,7 +90,7 @@
   var STATUS_DOT = { pending: '#f59e0b', confirmed: '#2563eb', resolved: '#16a34a', false_alarm: '#94a3b8' };
   var TASK_STATUS_CN = { running: '执行中', finished: '已完成' };
 
-  var PRIORITY_CN = { 1: '一级重点', 2: '二级', 3: '三级' };
+  var PRIORITY_CN = { 1: '一级重点', 2: '二级重点', 3: '三级重点' };
   var PRIORITY_DOT = { 1: '#d0342c', 2: '#f0a020', 3: '#2f7bd0' };
 
   function typeCN(t) { return TYPE_CN[t] || '未知'; }
