@@ -4,12 +4,21 @@
 """
 
 import json
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
 from backend.main import app
 
 client = TestClient(app)
+
+ROOT = Path(__file__).resolve().parent.parent
+TRACK_POINTS = len(json.loads(
+    (ROOT / "data" / "tracks" / "task-001.json").read_text(encoding="utf-8")
+)["track"])
+EVENT_COUNT = len(json.loads(
+    (ROOT / "data" / "events" / "events.json").read_text(encoding="utf-8")
+))
 
 
 # ---------------------------------------------------------------------------
@@ -23,7 +32,7 @@ def test_ws_replay_sends_all_points():
         assert meta["type"] == "meta"
         assert meta["task_id"] == "task-001"
         assert meta["agent_id"] == "drone-01"
-        assert meta["total"] == 10
+        assert meta["total"] == TRACK_POINTS
 
         seen = 0
         while True:
@@ -77,7 +86,7 @@ def test_report_stream_events():
 
     _, report = events[3]
     assert report["task_id"] == "task-001"
-    assert report["summary"]["events_count"] == 3
+    assert report["summary"]["events_count"] == EVENT_COUNT
     assert isinstance(report["conclusion"], str)
 
 

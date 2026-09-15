@@ -29,7 +29,7 @@ def heading_between(a,b):
     return math.degrees(math.atan2(dlng, dlat)) % 360
 
 # 4. 生成轨迹：从门岗起飞，依次经过巡检点
-start = {"id": "IP-000", "lng": 116.12, "lat": 39.13}
+start = {"id": "IP-000", "lng": 116.149, "lat": 39.160}
 waypoints = [start] + points   # 起点 + 巡检点，拼成一条路线
 
 track = []
@@ -41,8 +41,8 @@ for i, wp in enumerate(waypoints):
 
       track.append({
           "timestamp": t.strftime("%Y-%m-%dT%H:%M:%SZ"),
-          "lng": round(wp["lng"], 3),
-          "lat": round(wp["lat"], 3),
+          "lng": round(wp["lng"], 5),
+          "lat": round(wp["lat"], 5),
           "alt": 15.0,
           "speed": 0.0 if i == 0 else 2.5,   # 起点速度为 0
           "heading": round(heading, 1),

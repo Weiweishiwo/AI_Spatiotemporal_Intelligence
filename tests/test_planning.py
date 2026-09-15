@@ -1,7 +1,7 @@
 """spatiotemporal/planning.py 的单元测试（pytest）。
 
 运行方式（在项目根目录）：
-    pytest spatiotemporal/test_planning.py -v
+    .venv\\Scripts\\python -m pytest tests/ -v
 
 每个测试函数对应一条契约要求，把 plan_tour() / summarize_mileage() 的正确行为钉死：
 
@@ -33,7 +33,7 @@
 
 from datetime import date
 
-from planning import plan_tour, summarize_mileage
+from spatiotemporal.planning import plan_tour, summarize_mileage
 
 
 # ---------------------------------------------------------------------------

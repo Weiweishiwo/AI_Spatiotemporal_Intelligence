@@ -5,7 +5,7 @@
 - JsonStorage  —— 默认。直接读 data/ 下的 JSON 样例，保证「双击 run.bat 就能跑」。
 - MysqlStorage —— 第二阶段。MySQL 8：巡检点 / 事件 / 轨迹点落库，
     巡检点和事件带 POINT(4326) 空间列 + 空间索引，nearby_events() 演示
-    ST_DistanceSphere 附近查询；首次连上且表为空时自动从 data/ 灌样例，
+    ST_Distance_Sphere 附近查询；首次连上且表为空时自动从 data/ 灌样例，
     接口返回的 JSON 结构和 JsonStorage 完全一致。
 
 ⚠️ 本机没装 MySQL 就别开：.env 设 MYSQL_ENABLED=true 后连不上库，
@@ -16,7 +16,8 @@ import json
 import logging
 from pathlib import Path
 
-from sqlalchemy import Column, text
+from sqlalchemy import Column, Text, text
+from sqlalchemy.exc import OperationalError
 from sqlalchemy.types import UserDefinedType
 from sqlmodel import Field, SQLModel, create_engine
 
@@ -29,7 +30,7 @@ class MySQLPOINT(UserDefinedType):
     """渲染成 MySQL 空间列「POINT SRID 4326」。
 
     只借用它的 DDL 效果（create_all 能建出带 SRID 的 POINT 列）；
-    空间数据的写入/查询全部走原始 SQL（ST_GeomFromText / ST_DistanceSphere），
+    空间数据的写入/查询全部走原始 SQL（ST_GeomFromText / ST_Distance_Sphere），
     绕开 ORM 对二进制几何类型的绑定问题。
     """
 
@@ -150,13 +151,13 @@ class MapFeatureRow(SQLModel, table=True):
     __tablename__ = "map_features"
 
     doc_id: str = Field(primary_key=True, default="campus")
-    payload: str  # GeoJSON FeatureCollection 文本
+    payload: str = Field(sa_column=Column(Text))  # GeoJSON 文本可能超 VARCHAR 默认长度
 
 
 class MysqlStorage:
     """MySQL 数据源。构造时：建表 + 建空间索引 + 空表时从 data/ 灌样例。
 
-    MySQLPOINT() 存经纬度；nearby_events() 用 ST_DistanceSphere 算球面距离，
+    MySQLPOINT() 存经纬度；nearby_events() 用 ST_Distance_Sphere 算球面距离，
     这就是 README 里「MySQL 空间类型做附近查询」的落点。
     """
 
@@ -184,9 +185,13 @@ class MysqlStorage:
     def _init_schema(self):
         SQLModel.metadata.create_all(self.engine)
         with self.engine.begin() as conn:
-            # 空间索引不能由 create_all 生成，需手动 DDL（幂等：先删后建）
+            # 空间索引不能由 create_all 生成，需手动 DDL。先删后建；
+            # 首次运行索引还不存在，DROP 报 1091，忽略即可（真正的幂等）。
             for table in ("inspection_points", "events"):
-                conn.execute(text(f"ALTER TABLE {table} DROP INDEX idx_geom"))
+                try:
+                    conn.execute(text(f"ALTER TABLE {table} DROP INDEX idx_geom"))
+                except OperationalError:
+                    pass  # 1091：索引不存在，跳过删除
                 conn.execute(text(
                     f"CREATE SPATIAL INDEX idx_geom ON {table}(geom)"
                 ))
@@ -206,7 +211,8 @@ class MysqlStorage:
         """把 data/ 样例灌进 MySQL，使两套数据源返回一致（幂等：空表才灌）。"""
 
         def _point_wkt(lng: float, lat: float) -> str:
-            return f"POINT({lng} {lat})"
+            # MySQL SRID 4326 的轴顺序是「纬度在前、经度在后」，WKT 里 lat 先于 lng
+            return f"POINT({lat} {lng})"
 
         with self.engine.begin() as conn:
             # 巡检点 + 地图原稿
@@ -312,7 +318,7 @@ class MysqlStorage:
     def nearby_events(self, lng: float, lat: float, radius_m: float) -> list[dict]:
         """返回距 (lng, lat) 球面距离 <= radius_m 的事件，按距离升序。
 
-        ST_DistanceSphere 是 MySQL 自带的球面距离（米），配合 geom 上的
+        ST_Distance_Sphere 是 MySQL 自带的球面距离（米），配合 geom 上的
         空间索引做「附近 N 米有什么」这类查询。
         """
         if self._json_mode:
@@ -321,13 +327,13 @@ class MysqlStorage:
             "SELECT * FROM ("
             "  SELECT event_id, task_id, timestamp, lng, lat, type, confidence, "
             "         image_path, status, "
-            "         ST_DistanceSphere(geom, ST_GeomFromText(:pt, 4326)) AS dist_m "
+            "         ST_Distance_Sphere(geom, ST_GeomFromText(:pt, 4326)) AS dist_m "
             "  FROM events) t "
             "WHERE dist_m <= :radius ORDER BY dist_m"
         )
         with self.engine.connect() as conn:
             rows = conn.execute(sql, {
-                "pt": f"POINT({lng} {lat})", "radius": radius_m,
+                "pt": f"POINT({lat} {lng})", "radius": radius_m,
             }).all()
         return [dict(r._mapping) for r in rows]
 

@@ -36,3 +36,18 @@ data/users.json
 data/users.json.tmp
 # Claude Code 本地权限配置（个人、含机器相关信息）
 .claude/settings.local.json
+
+# ===== 安全帽训练（2026-09-12）=====
+# 数据集 2.2GB，太大不进版本库（github 单文件上限 100MB）；只留转换脚本
+datasets/*
+!datasets/coco2yolo.py
+# 下载的预训练权重 yolo26n.pt，是可再获取的缓存
+# （开头的 / 表示只忽略项目根目录的 weights/，不忽略 runs/.../weights/）
+/weights/
+# 训练/验证的预览大图（train_batch*.jpg、val_batch*.jpg），体积大，不进库
+runs/**/*batch*.jpg
+# 独立验证 run（重复产物，只保留主训练 run hardhat_yolov8n）
+runs/detect/val/
+runs/detect/val-2/
+# 续训用的 last.pt（线上推理只用 best.pt）
+runs/detect/**/weights/last.pt

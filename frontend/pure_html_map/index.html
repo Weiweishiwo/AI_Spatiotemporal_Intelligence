@@ -200,9 +200,9 @@
       <button id="btnRestart" type="button">↺ 重播</button>
       <label>速度</label>
       <select id="speedSel">
-        <option value="5">慢 ×5</option>
-        <option value="10" selected>中 ×10</option>
-        <option value="30">快 ×30</option>
+        <option value="3" selected>慢 ×3</option>
+        <option value="5">中 ×5</option>
+        <option value="10">快 ×10</option>
       </select>
     </div>
     <div class="row"><input type="range" id="seek" min="0" max="0" value="0"></div>
@@ -543,7 +543,7 @@
     var playing = false;     // 现在是否在播放
     var baseOffsetMs = 0;    // 虚拟时钟已走到的毫秒数
     var playStartWall = 0;   // 本次开始播放时的电脑时刻
-    var speedFactor = 10;    // 倍速（1 = 真实时间）
+    var speedFactor = 3;     // 倍速（1 = 真实时间）
     var timeline = [];       // 每个采样点相对起点的毫秒数，如 [0, 40000, 80000, ...]
 
     // 把每个点的时间戳换算成"从起点算起的毫秒"

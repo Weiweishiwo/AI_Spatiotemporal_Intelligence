@@ -168,10 +168,17 @@ def build_report(traj: dict, events: list[dict]) -> dict:
         "track_points": len(track),
         "events_count": len(events),
     }
+    conclusion = _rule_conclusion(events)
+    fn = _load_external_func("agent.report", "generate_conclusion")
+    if fn is not None:
+        try:
+            conclusion = fn(events, traj)
+        except Exception as e:
+            logger.warning("agent 结论生成失败，回退规则模板：%s", e)
     return {
         "task_id": task_id,
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "summary": summary,
         "events": events,
-        "conclusion": _rule_conclusion(events),
+        "conclusion": conclusion,
     }

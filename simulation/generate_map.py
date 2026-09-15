@@ -34,22 +34,22 @@ def make_inspection_point(pid, name, priority, lng, lat):
     }
 
 buildings = [
-      make_building("1号厂房", 116.14, 39.16, 0.02, 0.02),   # 我给你示范第一个
-      make_building("2号厂房", 116.17, 39.15, 0.02, 0.02),              # 2号厂房，你来填
-      make_building("办公楼", 116.13, 39.12, 0.02, 0.02),              # 办公楼
-      make_building("仓库", 116.17, 39.18, 0.02, 0.02),              # 仓库
+      make_building("1号厂房", 116.1505, 39.1605, 0.0006, 0.0006),
+      make_building("2号厂房", 116.1515, 39.1605, 0.0006, 0.0006),
+      make_building("办公楼", 116.1505, 39.1615, 0.0006, 0.0006),
+      make_building("仓库", 116.1515, 39.1615, 0.0006, 0.0006),
   ]
 
 roads = [
-    make_road("主干道",116.12, 39.17,116.20, 39.17),
-    make_road("次干道",116.15, 39.12,116.15, 39.20),
+    make_road("主干道",116.149, 39.161,116.153, 39.161),
+    make_road("次干道",116.151, 39.159,116.151, 39.163),
   ]
 points = [
-    make_inspection_point("IP-001","配电房",1,116.15, 39.18),
-    make_inspection_point("IP-002","消防栓",1,116.17, 39.16),
-    make_inspection_point("IP-003","充电桩",2,116.13, 39.17),
-    make_inspection_point("IP-004","门岗",2,116.12, 39.13),
-    make_inspection_point("IP-005","水泵房",3,116.18, 39.19),
+    make_inspection_point("IP-001","配电房",1,116.150, 39.160),
+    make_inspection_point("IP-002","消防栓",1,116.1505, 39.160),
+    make_inspection_point("IP-003","充电桩",2,116.150, 39.161),
+    make_inspection_point("IP-004","门岗",2,116.150, 39.160),
+    make_inspection_point("IP-005","水泵房",3,116.151, 39.161),
   ]
 
 features = buildings + roads + points
